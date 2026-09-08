@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { createJob, getJob, runJob } from "../lib/jobs.js";
-import { synthesizeScript, type ScriptTurn } from "../services/tts.js";
+import { synthesizeDialogue, type RenderedAudio, type ScriptTurn } from "../services/tts.js";
 
 export const ttsRouter = Router();
 
@@ -45,8 +45,8 @@ ttsRouter.post("/", (req, res) => {
     return res.status(400).json({ error: parsed.error });
   }
 
-  const job = createJob<{ audio: Buffer }>();
-  runJob(job, async () => ({ audio: await synthesizeScript(parsed.script) }));
+  const job = createJob<RenderedAudio>();
+  runJob(job, () => synthesizeDialogue(parsed.script));
 
   // 202: accepted, not finished. Location points at the status endpoint.
   res.status(202).location(`/api/tts/jobs/${job.id}`).json({ jobId: job.id, status: job.status });
@@ -54,7 +54,7 @@ ttsRouter.post("/", (req, res) => {
 
 /** Poll this until status is done or failed. */
 ttsRouter.get("/jobs/:jobId", (req, res) => {
-  const job = getJob<{ audio: Buffer }>(req.params.jobId);
+  const job = getJob<RenderedAudio>(req.params.jobId);
   if (!job) {
     return res.status(404).json({ error: "job not found" });
   }
@@ -70,12 +70,12 @@ ttsRouter.get("/jobs/:jobId", (req, res) => {
 
 /** The finished MP3. Only available once the job is done. */
 ttsRouter.get("/jobs/:jobId/audio", (req, res) => {
-  const job = getJob<{ audio: Buffer }>(req.params.jobId);
+  const job = getJob<RenderedAudio>(req.params.jobId);
   if (!job) {
     return res.status(404).json({ error: "job not found" });
   }
   if (job.status !== "done" || !job.result) {
     return res.status(409).json({ error: `job is ${job.status}, audio not ready` });
   }
-  res.type("audio/mpeg").send(job.result.audio);
+  res.type(job.result.mimeType).send(job.result.audio);
 });
