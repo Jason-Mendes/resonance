@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Mic, Sliders, MessageSquare, FileText } from "lucide-react";
+import { Sliders, MessageSquare, FileText } from "lucide-react";
 import { Tabs, TabItem } from "@/components/ui/Tabs";
 import {
   PodcastEpisode,
@@ -7,10 +7,9 @@ import {
   PodcastGenState,
   PodcastDialogueTurn,
 } from "@/types/podcast";
-import { PodcastConfigPanel } from "./PodcastConfigPanel";
 import { PodcastPlayerCard } from "./PodcastPlayerCard";
-import { PodcastTranscriptView } from "./PodcastTranscriptView";
-import { PodcastShowNotes } from "./PodcastShowNotes";
+import { PodcastStudioHeader } from "./PodcastStudioHeader";
+import { PodcastStudioTabContent } from "./PodcastStudioTabContent";
 
 export interface PodcastStudioSidebarProps {
   selectedPairId: string;
@@ -51,67 +50,24 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Sidebar Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-zinc-200">
-        <div>
-          <h2 className="text-sm font-bold text-black flex items-center gap-1.5 font-sans">
-            <Mic className="h-4 w-4 text-black" />
-            Audio Synthesis
-          </h2>
-          <p className="text-[11px] text-zinc-500 mt-0.5">
-            Turn article into conversational audio dialogue
-          </p>
-        </div>
-      </div>
+      <PodcastStudioHeader />
 
-      {/* Audio Player */}
       {episode && <PodcastPlayerCard episode={episode} />}
 
-      {/* Tabs */}
-      <Tabs
-        items={SIDEBAR_TABS}
-        activeId={activeTab}
-        onChange={setActiveTab}
+      <Tabs items={SIDEBAR_TABS} activeId={activeTab} onChange={setActiveTab} />
+
+      <PodcastStudioTabContent
+        activeTab={activeTab}
+        selectedPairId={selectedPairId}
+        onSelectPairId={onSelectPairId}
+        selectedFormat={selectedFormat}
+        onSelectFormat={onSelectFormat}
+        genState={genState}
+        progress={progress}
+        episode={episode}
+        onGenerate={onGenerate}
+        onUpdateDialogue={onUpdateDialogue}
       />
-
-      {/* Content */}
-      <div className="pt-1">
-        {activeTab === "config" && (
-          <PodcastConfigPanel
-            selectedPairId={selectedPairId}
-            onSelectPairId={onSelectPairId}
-            selectedFormat={selectedFormat}
-            onSelectFormat={onSelectFormat}
-            genState={genState}
-            progress={progress}
-            onGenerate={onGenerate}
-            hasEpisode={episode !== null}
-          />
-        )}
-
-        {activeTab === "transcript" && (
-          episode ? (
-            <PodcastTranscriptView
-              dialogue={episode.dialogue}
-              onUpdateDialogue={onUpdateDialogue}
-            />
-          ) : (
-            <div className="text-center py-8 text-xs text-zinc-400">
-              No audio generated yet. Click &quot;Generate Audio&quot;.
-            </div>
-          )
-        )}
-
-        {activeTab === "notes" && (
-          episode ? (
-            <PodcastShowNotes episode={episode} />
-          ) : (
-            <div className="text-center py-8 text-xs text-zinc-400">
-              Notes available after generation.
-            </div>
-          )
-        )}
-      </div>
     </div>
   );
 };
