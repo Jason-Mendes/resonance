@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { loadServerArticles } from "@/lib/server-articles";
 
 export async function GET() {

@@ -1,8 +1,10 @@
 import * as React from "react";
+
+import { EditTurnActions } from "./EditTurnActions";
+import { EditTurnHeader } from "./EditTurnHeader";
+
 import { Textarea } from "@/components/ui/Textarea";
 import { PodcastDialogueTurn } from "@/types/podcast";
-import { EditTurnHeader } from "./EditTurnHeader";
-import { EditTurnActions } from "./EditTurnActions";
 
 export interface EditTurnFormProps {
   turn: PodcastDialogueTurn;
@@ -11,12 +13,7 @@ export interface EditTurnFormProps {
   onDelete?: (id: string) => void;
 }
 
-export const EditTurnForm: React.FC<EditTurnFormProps> = ({
-  turn,
-  onClose,
-  onSave,
-  onDelete,
-}) => {
+export const EditTurnForm: React.FC<EditTurnFormProps> = ({ turn, onClose, onSave, onDelete }) => {
   const [text, setText] = React.useState<string>(turn.text);
 
   const handleSave = () => {

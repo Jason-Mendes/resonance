@@ -1,13 +1,15 @@
 import * as React from "react";
+
+import { PodcastConfigPanel } from "./PodcastConfigPanel";
+import { PodcastShowNotes } from "./PodcastShowNotes";
+import { PodcastTranscriptView } from "./PodcastTranscriptView";
+
 import {
   PodcastEpisode,
   PodcastFormat,
   PodcastGenState,
   PodcastDialogueTurn,
 } from "@/types/podcast";
-import { PodcastConfigPanel } from "./PodcastConfigPanel";
-import { PodcastTranscriptView } from "./PodcastTranscriptView";
-import { PodcastShowNotes } from "./PodcastShowNotes";
 
 export interface PodcastStudioTabContentProps {
   activeTab: string;
@@ -22,9 +24,7 @@ export interface PodcastStudioTabContentProps {
   onUpdateDialogue?: (dialogue: PodcastDialogueTurn[]) => void;
 }
 
-export const PodcastStudioTabContent: React.FC<
-  PodcastStudioTabContentProps
-> = ({
+export const PodcastStudioTabContent: React.FC<PodcastStudioTabContentProps> = ({
   activeTab,
   selectedPairId,
   onSelectPairId,
@@ -52,10 +52,7 @@ export const PodcastStudioTabContent: React.FC<
 
     {activeTab === "transcript" &&
       (episode ? (
-        <PodcastTranscriptView
-          dialogue={episode.dialogue}
-          onUpdateDialogue={onUpdateDialogue}
-        />
+        <PodcastTranscriptView dialogue={episode.dialogue} onUpdateDialogue={onUpdateDialogue} />
       ) : (
         <div className="text-center py-8 text-xs text-zinc-400">
           No audio generated yet. Click &quot;Generate Audio&quot;.

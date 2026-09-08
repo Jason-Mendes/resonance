@@ -1,5 +1,5 @@
-import { GoogleGenAI } from '@google/genai';
-import * as dotenv from 'dotenv';
+import { GoogleGenAI } from "@google/genai";
+import * as dotenv from "dotenv";
 
 dotenv.config();
 
@@ -8,7 +8,7 @@ dotenv.config();
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
   throw new Error(
-    'GEMINI_API_KEY is not set. Add it to backend/.env or the deployment environment.',
+    "GEMINI_API_KEY is not set. Add it to backend/.env or the deployment environment.",
   );
 }
 
@@ -16,7 +16,7 @@ if (!apiKey) {
 export const genAI = new GoogleGenAI({ apiKey });
 
 // The model we want to use for heavy text reasoning
-const TEXT_MODEL = 'gemini-2.5-flash'; 
+const TEXT_MODEL = "gemini-2.5-flash";
 
 /**
  * Extracts the article content and layers it according to the FlexRead challenge.
@@ -42,11 +42,11 @@ export async function generateFlexReadLayers(articleText: string) {
     model: TEXT_MODEL,
     contents: prompt,
     config: {
-      responseMimeType: 'application/json',
+      responseMimeType: "application/json",
     },
   });
 
-  return JSON.parse(response.text || '{}');
+  return JSON.parse(response.text || "{}");
 }
 
 /**
@@ -86,9 +86,9 @@ export async function generatePodcastScript(articleText: string) {
     model: TEXT_MODEL,
     contents: prompt,
     config: {
-      responseMimeType: 'application/json',
+      responseMimeType: "application/json",
     },
   });
 
-  return JSON.parse(response.text || '[]');
+  return JSON.parse(response.text || "[]");
 }

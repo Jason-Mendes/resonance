@@ -1,6 +1,7 @@
-import { Router } from 'express';
-import { createJob, getJob, runJob } from '../lib/jobs.js';
-import { synthesizeScript, type ScriptTurn } from '../services/tts.js';
+import { Router } from "express";
+
+import { createJob, getJob, runJob } from "../lib/jobs.js";
+import { synthesizeScript, type ScriptTurn } from "../services/tts.js";
 
 export const ttsRouter = Router();
 
@@ -9,10 +10,12 @@ export const ttsRouter = Router();
 const MAX_TURNS = 120;
 const MAX_TURN_CHARS = 2_000;
 
-function parseScript(body: unknown): { ok: true; script: ScriptTurn[] } | { ok: false; error: string } {
+function parseScript(
+  body: unknown,
+): { ok: true; script: ScriptTurn[] } | { ok: false; error: string } {
   const script = (body as { script?: unknown } | null)?.script;
   if (!Array.isArray(script) || script.length === 0) {
-    return { ok: false, error: 'script must be a non-empty array' };
+    return { ok: false, error: "script must be a non-empty array" };
   }
   if (script.length > MAX_TURNS) {
     return { ok: false, error: `script must have at most ${MAX_TURNS} turns` };
@@ -20,7 +23,11 @@ function parseScript(body: unknown): { ok: true; script: ScriptTurn[] } | { ok: 
   const turns: ScriptTurn[] = [];
   for (const [index, raw] of script.entries()) {
     const turn = raw as { speaker?: unknown; text?: unknown };
-    if (typeof turn?.speaker !== 'string' || typeof turn?.text !== 'string' || turn.text.trim() === '') {
+    if (
+      typeof turn?.speaker !== "string" ||
+      typeof turn?.text !== "string" ||
+      turn.text.trim() === ""
+    ) {
       return { ok: false, error: `turn ${index} needs a speaker and non-empty text` };
     }
     if (turn.text.length > MAX_TURN_CHARS) {
@@ -32,7 +39,7 @@ function parseScript(body: unknown): { ok: true; script: ScriptTurn[] } | { ok: 
 }
 
 /** Submit a script. Returns immediately with a job id; synthesis runs after. */
-ttsRouter.post('/', (req, res) => {
+ttsRouter.post("/", (req, res) => {
   const parsed = parseScript(req.body);
   if (!parsed.ok) {
     return res.status(400).json({ error: parsed.error });
@@ -46,10 +53,10 @@ ttsRouter.post('/', (req, res) => {
 });
 
 /** Poll this until status is done or failed. */
-ttsRouter.get('/jobs/:jobId', (req, res) => {
+ttsRouter.get("/jobs/:jobId", (req, res) => {
   const job = getJob<{ audio: Buffer }>(req.params.jobId);
   if (!job) {
-    return res.status(404).json({ error: 'job not found' });
+    return res.status(404).json({ error: "job not found" });
   }
   res.json({
     jobId: job.id,
@@ -57,18 +64,18 @@ ttsRouter.get('/jobs/:jobId', (req, res) => {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     ...(job.error ? { error: job.error } : {}),
-    ...(job.status === 'done' ? { audioUrl: `/api/tts/jobs/${job.id}/audio` } : {}),
+    ...(job.status === "done" ? { audioUrl: `/api/tts/jobs/${job.id}/audio` } : {}),
   });
 });
 
 /** The finished MP3. Only available once the job is done. */
-ttsRouter.get('/jobs/:jobId/audio', (req, res) => {
+ttsRouter.get("/jobs/:jobId/audio", (req, res) => {
   const job = getJob<{ audio: Buffer }>(req.params.jobId);
   if (!job) {
-    return res.status(404).json({ error: 'job not found' });
+    return res.status(404).json({ error: "job not found" });
   }
-  if (job.status !== 'done' || !job.result) {
+  if (job.status !== "done" || !job.result) {
     return res.status(409).json({ error: `job is ${job.status}, audio not ready` });
   }
-  res.type('audio/mpeg').send(job.result.audio);
+  res.type("audio/mpeg").send(job.result.audio);
 });

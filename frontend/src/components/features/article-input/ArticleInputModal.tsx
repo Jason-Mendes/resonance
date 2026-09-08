@@ -1,10 +1,12 @@
-import * as React from "react";
 import { Link, FileText, X } from "lucide-react";
-import { Tabs, TabItem } from "@/components/ui/Tabs";
-import { Button } from "@/components/ui/Button";
-import { ArticleInputMode } from "@/types/article";
-import { UrlInputTab, UrlInputTabProps } from "./UrlInputTab";
+import * as React from "react";
+
 import { TextInputTab, TextInputTabProps } from "./TextInputTab";
+import { UrlInputTab, UrlInputTabProps } from "./UrlInputTab";
+
+import { Button } from "@/components/ui/Button";
+import { Tabs, TabItem } from "@/components/ui/Tabs";
+import { ArticleInputMode } from "@/types/article";
 
 export interface ArticleInputModalProps {
   isOpen: boolean;
@@ -36,9 +38,7 @@ export const ArticleInputModal: React.FC<ArticleInputModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
       <div className="relative w-full max-w-xl rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-          <h2 className="text-base font-bold font-serif text-black">
-            Import Article
-          </h2>
+          <h2 className="text-base font-bold font-serif text-black">Import Article</h2>
           {canClose && onClose && (
             <Button
               variant="ghost"
@@ -60,11 +60,7 @@ export const ArticleInputModal: React.FC<ArticleInputModalProps> = ({
         </div>
 
         <div className="mt-1">
-          {mode === "url" ? (
-            <UrlInputTab {...urlTab} />
-          ) : (
-            <TextInputTab {...textTab} />
-          )}
+          {mode === "url" ? <UrlInputTab {...urlTab} /> : <TextInputTab {...textTab} />}
         </div>
       </div>
     </div>

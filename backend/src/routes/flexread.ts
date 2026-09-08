@@ -1,10 +1,11 @@
-import { Router } from 'express';
-import { parseArticleText } from '../lib/articleText.js';
-import { generateFlexReadLayers } from '../services/gemini.js';
+import { Router } from "express";
+
+import { parseArticleText } from "../lib/articleText.js";
+import { generateFlexReadLayers } from "../services/gemini.js";
 
 export const flexreadRouter = Router();
 
-flexreadRouter.post('/', async (req, res) => {
+flexreadRouter.post("/", async (req, res) => {
   const parsed = parseArticleText(req.body);
   if (!parsed.ok) {
     return res.status(400).json({ error: parsed.error });
@@ -18,7 +19,7 @@ flexreadRouter.post('/', async (req, res) => {
   } catch (error) {
     // Detail stays server-side. Gemini SDK errors can name models and quota
     // state, none of which belongs in a response to an anonymous caller.
-    console.error('FlexRead API Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("FlexRead API Error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });

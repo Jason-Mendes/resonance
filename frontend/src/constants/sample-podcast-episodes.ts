@@ -1,5 +1,6 @@
-import { PodcastEpisode } from "@/types/podcast";
 import { HOST_PAIR_PRESETS } from "./sample-podcast-hosts";
+
+import { PodcastEpisode } from "@/types/podcast";
 
 export const SAMPLE_PODCAST_MAP: Record<string, PodcastEpisode> = {
   "sovereign-compute-2026": {

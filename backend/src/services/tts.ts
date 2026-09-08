@@ -4,7 +4,7 @@
  * disallows them. Locally that means `gcloud auth application-default login`;
  * on Cloud Run the service account is picked up automatically.
  */
-import textToSpeech from '@google-cloud/text-to-speech';
+import textToSpeech from "@google-cloud/text-to-speech";
 
 const client = new textToSpeech.TextToSpeechClient();
 
@@ -19,11 +19,11 @@ export interface ScriptTurn {
 // so the turn caps in routes/tts.ts matter more than they did.
 // HostA is the analytical host, HostB the curious one, per services/gemini.ts.
 const VOICE_BY_SPEAKER: Record<string, string> = {
-  HostA: 'en-US-Studio-Q',
-  HostB: 'en-US-Studio-O',
+  HostA: "en-US-Studio-Q",
+  HostB: "en-US-Studio-O",
 };
-const FALLBACK_VOICE = 'en-US-Studio-Q';
-const LANGUAGE_CODE = 'en-US';
+const FALLBACK_VOICE = "en-US-Studio-Q";
+const LANGUAGE_CODE = "en-US";
 
 // 48kHz rather than the 24kHz default. Slightly larger files, noticeably less
 // of the tinny quality that makes synthesis obvious.
@@ -43,11 +43,11 @@ const PAUSE_AFTER_TURN_MS = 450;
  */
 function escapeForSsml(text: string): string {
   return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 async function synthesizeTurn(turn: ScriptTurn): Promise<Buffer> {
@@ -59,7 +59,7 @@ async function synthesizeTurn(turn: ScriptTurn): Promise<Buffer> {
     input: { ssml },
     voice: { languageCode: LANGUAGE_CODE, name: VOICE_BY_SPEAKER[turn.speaker] ?? FALLBACK_VOICE },
     audioConfig: {
-      audioEncoding: 'MP3',
+      audioEncoding: "MP3",
       sampleRateHertz: SAMPLE_RATE_HZ,
       speakingRate: SPEAKING_RATE,
     },

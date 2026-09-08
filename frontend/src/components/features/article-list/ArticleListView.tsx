@@ -1,17 +1,17 @@
-import * as React from "react";
 import { Loader2 } from "lucide-react";
+import * as React from "react";
+
+import { ArticleCard } from "./ArticleCard";
+
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useArticlesList } from "@/hooks/useArticlesQuery";
-import { ArticleCard } from "./ArticleCard";
 
 export interface ArticleListViewProps {
   onSelectArticle: (id: string) => void;
   onOpenImport?: () => void;
 }
 
-export const ArticleListView: React.FC<ArticleListViewProps> = ({
-  onSelectArticle,
-}) => {
+export const ArticleListView: React.FC<ArticleListViewProps> = ({ onSelectArticle }) => {
   const { data: articles, isLoading, isError, refetch } = useArticlesList();
 
   return (
@@ -33,21 +33,12 @@ export const ArticleListView: React.FC<ArticleListViewProps> = ({
         </div>
       )}
 
-      {isError && (
-        <ErrorState
-          message="Failed to load articles."
-          onRetry={() => refetch()}
-        />
-      )}
+      {isError && <ErrorState message="Failed to load articles." onRetry={() => refetch()} />}
 
       {articles && articles.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {articles.map((article) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              onSelect={onSelectArticle}
-            />
+            <ArticleCard key={article.id} article={article} onSelect={onSelectArticle} />
           ))}
         </div>
       )}

@@ -1,14 +1,13 @@
-import * as React from "react";
 import { Quote } from "lucide-react";
+import * as React from "react";
+
 import { ArticleSection } from "@/types/article";
 
 export interface ArticleQuoteSectionProps {
   section: ArticleSection;
 }
 
-export const ArticleQuoteSection: React.FC<ArticleQuoteSectionProps> = ({
-  section,
-}) => (
+export const ArticleQuoteSection: React.FC<ArticleQuoteSectionProps> = ({ section }) => (
   <figure className="my-5 rounded-none bg-zinc-50 border-l-3 border-black p-4">
     <div className="flex items-start gap-2.5">
       <Quote className="h-4 w-4 text-black shrink-0 mt-1" />

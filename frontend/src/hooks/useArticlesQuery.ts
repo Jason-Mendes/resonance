@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Article } from "@/types/article";
+
 import { QUERY_KEYS } from "@/lib/query-keys";
+import { Article } from "@/types/article";
 
 export interface ArticleSummary {
   id: string;
