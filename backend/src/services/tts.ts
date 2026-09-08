@@ -4,6 +4,7 @@
  * disallows them. Locally that means `gcloud auth application-default login`;
  * on Cloud Run the service account is picked up automatically.
  */
+import { GoogleGenAI } from "@google/genai";
 import textToSpeech from "@google-cloud/text-to-speech";
 
 const client = new textToSpeech.TextToSpeechClient();
@@ -85,4 +86,122 @@ export async function synthesizeScript(script: ScriptTurn[]): Promise<Buffer> {
     parts.push(await synthesizeTurn(turn));
   }
   return Buffer.concat(parts);
+}
+
+// --- Gemini multi-speaker -------------------------------------------------
+//
+// Everything above renders one turn at a time, so no speaker has heard the
+// other and the clips are joined afterwards. Gemini generates the whole
+// dialogue in a single call with both parts in view, which is where the
+// conversational timing comes from. This is the path the podcast uses; the
+// Cloud TTS path above stays for single-voice work like the audio briefing.
+
+const DIALOGUE_MODEL = "gemini-2.5-pro-preview-tts";
+
+// Chosen by listening to side-by-side samples. Voice quality varies audibly
+// within the family and is not documented, so this pairing is empirical.
+const DIALOGUE_VOICE_BY_SPEAKER: Record<string, string> = {
+  HostA: "Algieba",
+  HostB: "Aoede",
+};
+
+// Gemini returns headerless 16-bit mono PCM at this rate.
+const PCM_SAMPLE_RATE_HZ = 24_000;
+const PCM_BITS_PER_SAMPLE = 16;
+const PCM_CHANNELS = 1;
+const WAV_HEADER_BYTES = 44;
+
+// Used if the model invents a speaker the mapping does not cover.
+const DEFAULT_DIALOGUE_VOICE = "Algieba";
+
+/**
+ * Vertex, not the Gemini Developer API: the project's organisation policy
+ * disallows API keys, so this authenticates by Application Default
+ * Credentials like the Cloud TTS client above. Built on first use rather than
+ * at import, so the rest of the backend still starts without Vertex config.
+ */
+let vertexClient: GoogleGenAI | undefined;
+
+function getVertexClient(): GoogleGenAI {
+  if (vertexClient) return vertexClient;
+
+  const project = process.env.VERTEX_PROJECT;
+  if (!project) {
+    throw new Error("VERTEX_PROJECT is not set, so dialogue audio cannot be generated");
+  }
+  vertexClient = new GoogleGenAI({
+    vertexai: true,
+    project,
+    location: process.env.VERTEX_LOCATION ?? "us-central1",
+  });
+  return vertexClient;
+}
+
+/** Wraps raw PCM in a WAV container so browsers and players can read it. */
+function pcmToWav(pcm: Buffer): Buffer {
+  const byteRate = (PCM_SAMPLE_RATE_HZ * PCM_CHANNELS * PCM_BITS_PER_SAMPLE) / 8;
+  const blockAlign = (PCM_CHANNELS * PCM_BITS_PER_SAMPLE) / 8;
+  const header = Buffer.alloc(WAV_HEADER_BYTES);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16); // fmt chunk size
+  header.writeUInt16LE(1, 20); // 1 = uncompressed PCM
+  header.writeUInt16LE(PCM_CHANNELS, 22);
+  header.writeUInt32LE(PCM_SAMPLE_RATE_HZ, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(PCM_BITS_PER_SAMPLE, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+}
+
+/** Audio plus the content type it should be served with. */
+export interface RenderedAudio {
+  audio: Buffer;
+  mimeType: string;
+}
+
+/**
+ * Renders a whole dialogue in one Gemini call, with every speaker's lines in
+ * view of the others. Returns WAV, not MP3: the model emits raw PCM and
+ * transcoding would mean shipping ffmpeg in the container for no clear gain.
+ */
+export async function synthesizeDialogue(script: ScriptTurn[]): Promise<RenderedAudio> {
+  const transcript = script.map((turn) => `${turn.speaker}: ${turn.text}`).join("\n");
+
+  const speakerVoiceConfigs = [...new Set(script.map((turn) => turn.speaker))].map((speaker) => ({
+    speaker,
+    voiceConfig: {
+      prebuiltVoiceConfig: {
+        voiceName: DIALOGUE_VOICE_BY_SPEAKER[speaker] ?? DEFAULT_DIALOGUE_VOICE,
+      },
+    },
+  }));
+
+  const response = await getVertexClient().models.generateContent({
+    model: DIALOGUE_MODEL,
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {
+            text: `Read this as a natural two-host news podcast. Conversational and engaged, at the pace of real radio.\n\n${transcript}`,
+          },
+        ],
+      },
+    ],
+    config: {
+      responseModalities: ["AUDIO"],
+      speechConfig: { multiSpeakerVoiceConfig: { speakerVoiceConfigs } },
+    },
+  });
+
+  const inline = response.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+  if (!inline?.data) {
+    throw new Error("Gemini returned no audio for the dialogue");
+  }
+  return { audio: pcmToWav(Buffer.from(inline.data, "base64")), mimeType: "audio/wav" };
 }
