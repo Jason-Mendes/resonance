@@ -6,8 +6,8 @@ import { createServer } from 'http';
 
 // We will import routes once we create them
 import { flexreadRouter } from './routes/flexread.js';
+import { podcastRouter } from './routes/podcast.js';
 // import { ttsRouter } from './routes/tts';
-// import { podcastRouter } from './routes/podcast';
 // import { setupVoiceChat } from './routes/voice-chat';
 
 // Comma-separated list of origins allowed to call this API. Required rather
@@ -48,8 +48,8 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use('/api', apiLimiter);
 app.use('/api/flexread', flexreadRouter);
+app.use('/api/podcast', podcastRouter);
 // app.use('/api/tts', ttsRouter);
-// app.use('/api/podcast', podcastRouter);
 
 // Set up WebSocket server for Gemini Live
 // const wss = new WebSocketServer({ server, path: '/api/voice-chat' });
