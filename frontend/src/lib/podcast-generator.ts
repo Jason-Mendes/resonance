@@ -1,3 +1,5 @@
+import { SAMPLE_PODCAST_MAP } from "@/constants/sample-podcast-episodes";
+import { HOST_PAIR_PRESETS } from "@/constants/sample-podcast-hosts";
 import { Article, ArticleSectionType } from "@/types/article";
 import {
   PodcastChapter,
@@ -6,19 +8,13 @@ import {
   PodcastFormat,
   PodcastHost,
 } from "@/types/podcast";
-import { HOST_PAIR_PRESETS } from "@/constants/sample-podcast-hosts";
-import { SAMPLE_PODCAST_MAP } from "@/constants/sample-podcast-episodes";
 
-const FALLBACK_QUOTE =
-  "The implications extend far beyond regional boundaries.";
+const FALLBACK_QUOTE = "The implications extend far beyond regional boundaries.";
 const LEAD_EXCERPT_CHARS = 150;
 const QUOTE_EXCERPT_CHARS = 140;
 const TITLE_MAX_CHARS = 48;
 const TAKEAWAY_EXCERPT_CHARS = 120;
-const WAVEFORM = [
-  20, 35, 55, 40, 75, 90, 65, 50, 85, 70, 45, 80, 60, 35, 75, 85, 50, 60, 30,
-  15,
-];
+const WAVEFORM = [20, 35, 55, 40, 75, 90, 65, 50, 85, 70, 45, 80, 60, 35, 75, 85, 50, 60, 30, 15];
 
 const findSectionContent = (article: Article, type: ArticleSectionType) =>
   article.sections.find((section) => section.type === type)?.content;
@@ -26,12 +22,10 @@ const findSectionContent = (article: Article, type: ArticleSectionType) =>
 const buildDialogue = (
   article: Article,
   hostA: PodcastHost,
-  hostB: PodcastHost
+  hostB: PodcastHost,
 ): PodcastDialogueTurn[] => {
   const leadText =
-    findSectionContent(article, "lead") ||
-    article.sections[0]?.content ||
-    article.subtitle;
+    findSectionContent(article, "lead") || article.sections[0]?.content || article.subtitle;
   const quoteText = findSectionContent(article, "quote") || FALLBACK_QUOTE;
 
   return [
@@ -90,14 +84,13 @@ const buildChapters = (article: Article): PodcastChapter[] => [
 export const generatePodcastForArticle = (
   article: Article,
   pairId: string,
-  format: PodcastFormat
+  format: PodcastFormat,
 ): PodcastEpisode => {
   if (SAMPLE_PODCAST_MAP[article.id]) {
     return SAMPLE_PODCAST_MAP[article.id];
   }
 
-  const preset =
-    HOST_PAIR_PRESETS.find((p) => p.id === pairId) || HOST_PAIR_PRESETS[0];
+  const preset = HOST_PAIR_PRESETS.find((p) => p.id === pairId) || HOST_PAIR_PRESETS[0];
   const hostA = preset.hosts[0];
   const hostB = preset.hosts[1] || preset.hosts[0];
 

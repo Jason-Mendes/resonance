@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 export interface TabItem {
@@ -15,17 +16,12 @@ export interface TabsProps {
   className?: string;
 }
 
-export const Tabs: React.FC<TabsProps> = ({
-  items,
-  activeId,
-  onChange,
-  className,
-}) => {
+export const Tabs: React.FC<TabsProps> = ({ items, activeId, onChange, className }) => {
   return (
     <div
       className={cn(
         "flex items-center space-x-1 rounded-none bg-zinc-100 p-1 border border-zinc-200",
-        className
+        className,
       )}
     >
       {items.map((item) => {
@@ -39,7 +35,7 @@ export const Tabs: React.FC<TabsProps> = ({
               "flex flex-1 items-center justify-center gap-1.5 rounded-none px-3 py-1.5 text-xs font-medium transition-all select-none",
               isActive
                 ? "bg-white text-black font-semibold border border-zinc-200"
-                : "text-zinc-500 hover:text-black border border-transparent"
+                : "text-zinc-500 hover:text-black border border-transparent",
             )}
           >
             {item.icon}

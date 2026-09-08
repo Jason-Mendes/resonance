@@ -1,9 +1,11 @@
-import * as React from "react";
 import { FileEdit } from "lucide-react";
+import * as React from "react";
+
+import { TextInputFields } from "./TextInputFields";
+
 import { ActionButton } from "@/components/ui/ActionButton";
 import { Button } from "@/components/ui/Button";
 import { RawTextInput } from "@/lib/article-parser";
-import { TextInputFields } from "./TextInputFields";
 
 export interface TextInputTabProps {
   state: RawTextInput;

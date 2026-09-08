@@ -1,8 +1,9 @@
 import fs from "fs";
 import path from "path";
-import { Article, NzzRawArticle } from "@/types/article";
+
 import { SAMPLE_ARTICLES } from "@/constants/sample-articles";
 import { mapNzzToArticle } from "@/lib/nzz-article-adapter";
+import { Article, NzzRawArticle } from "@/types/article";
 
 let cachedArticles: Article[] | null = null;
 
@@ -29,8 +30,7 @@ export const loadServerArticles = (): Article[] => {
 
       if (parsed.length > 0) {
         parsed.sort(
-          (a, b) =>
-            new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+          (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
         );
         cachedArticles = parsed;
         return cachedArticles;
@@ -48,10 +48,7 @@ export const getServerArticleById = (id: string): Article | null => {
   const articles = loadServerArticles();
   return (
     articles.find(
-      (a) =>
-        a.id === id ||
-        a.id === String(id) ||
-        (a.sourceUrl && a.sourceUrl.includes(id))
+      (a) => a.id === id || a.id === String(id) || (a.sourceUrl && a.sourceUrl.includes(id)),
     ) || null
   );
 };

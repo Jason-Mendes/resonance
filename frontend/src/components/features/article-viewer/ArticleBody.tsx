@@ -1,6 +1,8 @@
 import * as React from "react";
-import { ArticleSection } from "@/types/article";
+
 import { ArticleSectionRenderer } from "./ArticleSectionRenderer";
+
+import { ArticleSection } from "@/types/article";
 
 export interface ArticleBodyProps {
   sections: ArticleSection[];

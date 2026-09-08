@@ -1,5 +1,6 @@
-import * as React from "react";
 import { ArrowLeft } from "lucide-react";
+import * as React from "react";
+
 import { Button } from "@/components/ui/Button";
 import { Article } from "@/types/article";
 
@@ -9,10 +10,7 @@ export interface AppHeaderProps {
   onOpenInput?: () => void;
 }
 
-export const AppHeader: React.FC<AppHeaderProps> = ({
-  article,
-  onBackToList,
-}) => {
+export const AppHeader: React.FC<AppHeaderProps> = ({ article, onBackToList }) => {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-zinc-200 bg-white">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">

@@ -1,18 +1,18 @@
 import * as React from "react";
-import { ArticleSection } from "@/types/article";
-import { ArticleTextSection } from "./ArticleTextSection";
-import { ArticleQuoteSection } from "./ArticleQuoteSection";
+
 import { ArticleDataCallout } from "./ArticleDataCallout";
-import { ArticleKeyPoints } from "./ArticleKeyPoints";
 import { ArticleImageSection } from "./ArticleImageSection";
+import { ArticleKeyPoints } from "./ArticleKeyPoints";
+import { ArticleQuoteSection } from "./ArticleQuoteSection";
+import { ArticleTextSection } from "./ArticleTextSection";
+
+import { ArticleSection } from "@/types/article";
 
 export interface ArticleSectionRendererProps {
   section: ArticleSection;
 }
 
-export const ArticleSectionRenderer: React.FC<ArticleSectionRendererProps> = ({
-  section,
-}) => {
+export const ArticleSectionRenderer: React.FC<ArticleSectionRendererProps> = ({ section }) => {
   switch (section.type) {
     case "quote":
       return <ArticleQuoteSection section={section} />;

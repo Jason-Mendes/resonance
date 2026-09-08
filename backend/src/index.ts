@@ -1,26 +1,28 @@
-import express from 'express';
-import cors from 'cors';
-import rateLimit from 'express-rate-limit';
-import { createServer } from 'http';
+import { createServer } from "http";
+
+import cors from "cors";
+import express from "express";
+import rateLimit from "express-rate-limit";
+
 // import { WebSocketServer } from 'ws';
 
 // We will import routes once we create them
-import { flexreadRouter } from './routes/flexread.js';
-import { podcastRouter } from './routes/podcast.js';
+import { flexreadRouter } from "./routes/flexread.js";
+import { podcastRouter } from "./routes/podcast.js";
 // import { ttsRouter } from './routes/tts';
 // import { setupVoiceChat } from './routes/voice-chat';
 
 // Comma-separated list of origins allowed to call this API. Required rather
 // than defaulted, so a permissive setting can never reach production by
 // accident. Example: FRONTEND_ORIGIN=https://resonance.example,http://localhost:5173
-const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? '')
-  .split(',')
+const allowedOrigins = (process.env.FRONTEND_ORIGIN ?? "")
+  .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
 if (allowedOrigins.length === 0) {
   throw new Error(
-    'FRONTEND_ORIGIN is not set. Give it a comma-separated list of origins allowed to call this API.',
+    "FRONTEND_ORIGIN is not set. Give it a comma-separated list of origins allowed to call this API.",
   );
 }
 
@@ -29,8 +31,8 @@ const server = createServer(app);
 
 // Sized to the article-length cap enforced in the routes. 10mb let a single
 // request push megabytes of text into a paid model call.
-app.use(express.json({ limit: '1mb' }));
-app.use(cors({ origin: allowedOrigins, methods: ['GET', 'POST'], credentials: false }));
+app.use(express.json({ limit: "1mb" }));
+app.use(cors({ origin: allowedOrigins, methods: ["GET", "POST"], credentials: false }));
 
 // Every /api route reaches a paid Gemini call, so cap what one client can
 // spend. The endpoint is unauthenticated by design for the demo; this is what
@@ -38,17 +40,17 @@ app.use(cors({ origin: allowedOrigins, methods: ['GET', 'POST'], credentials: fa
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 60,
-  standardHeaders: 'draft-7',
+  standardHeaders: "draft-7",
   legacyHeaders: false,
-  message: { error: 'Too many requests, please try again later.' },
+  message: { error: "Too many requests, please try again later." },
 });
 
 // Health check stays outside the limiter so uptime probes never trip it.
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 
-app.use('/api', apiLimiter);
-app.use('/api/flexread', flexreadRouter);
-app.use('/api/podcast', podcastRouter);
+app.use("/api", apiLimiter);
+app.use("/api/flexread", flexreadRouter);
+app.use("/api/podcast", podcastRouter);
 // app.use('/api/tts', ttsRouter);
 
 // Set up WebSocket server for Gemini Live

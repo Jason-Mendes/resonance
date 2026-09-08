@@ -1,17 +1,16 @@
-import * as React from "react";
 import { Clock } from "lucide-react";
-import { ArticleSummary } from "@/hooks/useArticlesQuery";
+import * as React from "react";
+
 import { ArticleCardImage } from "./ArticleCardImage";
+
+import { ArticleSummary } from "@/hooks/useArticlesQuery";
 
 export interface ArticleCardProps {
   article: ArticleSummary;
   onSelect: (id: string) => void;
 }
 
-export const ArticleCard: React.FC<ArticleCardProps> = ({
-  article,
-  onSelect,
-}) => {
+export const ArticleCard: React.FC<ArticleCardProps> = ({ article, onSelect }) => {
   return (
     <article
       onClick={() => onSelect(article.id)}
@@ -46,12 +45,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
       {/* Footer Byline */}
       <div className="pt-4 mt-6 border-t border-zinc-100 text-xs">
-        <span className="font-semibold text-black block">
-          {article.author.name}
-        </span>
-        <span className="text-[11px] text-zinc-400 font-sans block">
-          {article.author.role}
-        </span>
+        <span className="font-semibold text-black block">{article.author.name}</span>
+        <span className="text-[11px] text-zinc-400 font-sans block">{article.author.role}</span>
       </div>
     </article>
   );

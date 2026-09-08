@@ -1,9 +1,11 @@
-import * as React from "react";
 import { Mic, Loader2 } from "lucide-react";
+import * as React from "react";
+
+import { PodcastFormatSelector } from "./PodcastFormatSelector";
+
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
 import { PodcastFormat, PodcastGenState } from "@/types/podcast";
-import { PodcastFormatSelector } from "./PodcastFormatSelector";
 
 export interface PodcastConfigPanelProps {
   selectedPairId: string;

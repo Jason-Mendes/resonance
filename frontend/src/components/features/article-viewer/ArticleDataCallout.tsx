@@ -1,14 +1,13 @@
-import * as React from "react";
 import { TrendingUp } from "lucide-react";
+import * as React from "react";
+
 import { ArticleSection } from "@/types/article";
 
 export interface ArticleDataCalloutProps {
   section: ArticleSection;
 }
 
-export const ArticleDataCallout: React.FC<ArticleDataCalloutProps> = ({
-  section,
-}) => (
+export const ArticleDataCallout: React.FC<ArticleDataCalloutProps> = ({ section }) => (
   <div className="my-5 rounded-none border border-zinc-200 bg-zinc-50 p-4 font-sans">
     <div className="flex items-center justify-between pb-2 border-b border-zinc-200">
       <span className="text-xs font-mono uppercase tracking-wider text-zinc-500 font-semibold">
@@ -28,9 +27,7 @@ export const ArticleDataCallout: React.FC<ArticleDataCalloutProps> = ({
             </span>
           )}
         </div>
-        <p className="mt-0.5 text-xs font-semibold text-black">
-          {section.dataMetric.label}
-        </p>
+        <p className="mt-0.5 text-xs font-semibold text-black">{section.dataMetric.label}</p>
       </div>
     )}
   </div>
