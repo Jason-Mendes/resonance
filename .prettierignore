@@ -1,0 +1,13 @@
+# Prettier owns source formatting only. Everything below is either machine
+# written, vendored, or someone else's local state.
+**/node_modules/**
+**/dist/**
+**/build/**
+**/.next/**
+**/coverage/**
+**/*.d.ts
+package-lock.json
+**/package-lock.json
+
+# Local container state, not source.
+infra/

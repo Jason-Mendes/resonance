@@ -35,8 +35,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: "22"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -45,6 +45,12 @@ jobs:
       # any severity exits non-zero and fails the check.
       - name: Lint
         run: npm run lint
+
+      # Formatting is mechanical, so it is checked rather than argued about in
+      # review. `--check` only reports and never writes, so CI cannot smuggle a
+      # reformat into a branch.
+      - name: Format check
+        run: npm run format:check
 
       # Conditional: backend/ is not committed yet. Once backend/package.json
       # and tsconfig.json land, this step starts enforcing on its own.
