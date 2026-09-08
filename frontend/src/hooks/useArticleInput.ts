@@ -1,11 +1,12 @@
 import { useCallback, useState } from "react";
-import { Article, ArticleInputMode } from "@/types/article";
+
 import { SAMPLE_ARTICLES } from "@/constants/sample-articles";
 import {
   RawTextInput,
   createFallbackUrlArticle,
   parseRawTextToArticle,
 } from "@/lib/article-parser";
+import { Article, ArticleInputMode } from "@/types/article";
 
 const URL_FETCH_DELAY_MS = 700;
 const TEXT_PARSE_DELAY_MS = 400;
@@ -32,9 +33,7 @@ const SAMPLE_TEXT_STATE: RawTextInput = {
 };
 
 /** Stands in for the real extraction API until the backend is wired up. */
-const useDelayedArticleLoad = (
-  onArticleLoaded: (article: Article) => void
-) => {
+const useDelayedArticleLoad = (onArticleLoaded: (article: Article) => void) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,35 +46,38 @@ const useDelayedArticleLoad = (
         onArticleLoaded(build());
       }, delayMs);
     },
-    [onArticleLoaded]
+    [onArticleLoaded],
   );
 
   return { isLoading, error, setError, loadWithDelay };
 };
 
-export const useArticleInput = (
-  onArticleLoaded: (article: Article) => void
-) => {
+export const useArticleInput = (onArticleLoaded: (article: Article) => void) => {
   const [mode, setMode] = useState<ArticleInputMode>("url");
   const [url, setUrl] = useState<string>("");
   const [textState, setTextState] = useState<RawTextInput>(DEFAULT_TEXT_STATE);
-  const { isLoading, error, setError, loadWithDelay } =
-    useDelayedArticleLoad(onArticleLoaded);
+  const { isLoading, error, setError, loadWithDelay } = useDelayedArticleLoad(onArticleLoaded);
 
-  const handleSelectPreset = useCallback((presetId: string) => {
-    const found = SAMPLE_ARTICLES.find((a) => a.id === presetId);
-    if (!found) return;
-    setError(null);
-    onArticleLoaded(found);
-  }, [onArticleLoaded, setError]);
+  const handleSelectPreset = useCallback(
+    (presetId: string) => {
+      const found = SAMPLE_ARTICLES.find((a) => a.id === presetId);
+      if (!found) return;
+      setError(null);
+      onArticleLoaded(found);
+    },
+    [onArticleLoaded, setError],
+  );
 
-  const handleFetchUrl = useCallback((targetUrl: string) => {
-    if (!targetUrl.trim()) {
-      setError("Please enter a valid article URL.");
-      return;
-    }
-    loadWithDelay(URL_FETCH_DELAY_MS, () => createFallbackUrlArticle(targetUrl));
-  }, [loadWithDelay, setError]);
+  const handleFetchUrl = useCallback(
+    (targetUrl: string) => {
+      if (!targetUrl.trim()) {
+        setError("Please enter a valid article URL.");
+        return;
+      }
+      loadWithDelay(URL_FETCH_DELAY_MS, () => createFallbackUrlArticle(targetUrl));
+    },
+    [loadWithDelay, setError],
+  );
 
   const handleParsePastedText = useCallback(() => {
     if (!textState.title.trim() && !textState.content.trim()) {

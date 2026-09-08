@@ -1,5 +1,6 @@
-import * as React from "react";
 import { Users } from "lucide-react";
+import * as React from "react";
+
 import { PodcastFormat } from "@/types/podcast";
 
 interface FormatOption {

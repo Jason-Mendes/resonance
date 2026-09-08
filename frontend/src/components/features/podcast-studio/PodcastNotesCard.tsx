@@ -1,14 +1,13 @@
-import * as React from "react";
 import { CheckCircle2, FileText } from "lucide-react";
+import * as React from "react";
+
 import { PodcastEpisode } from "@/types/podcast";
 
 export interface PodcastNotesCardProps {
   episode: PodcastEpisode;
 }
 
-export const PodcastNotesCard: React.FC<PodcastNotesCardProps> = ({
-  episode,
-}) => (
+export const PodcastNotesCard: React.FC<PodcastNotesCardProps> = ({ episode }) => (
   <div className="border border-zinc-200 bg-white p-3.5 space-y-2.5 rounded-none">
     <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-zinc-500 uppercase tracking-wider">
       <FileText className="h-3.5 w-3.5 text-black" />
@@ -22,10 +21,7 @@ export const PodcastNotesCard: React.FC<PodcastNotesCardProps> = ({
       </span>
       <ul className="space-y-1">
         {episode.keyTakeaways.map((takeaway, idx) => (
-          <li
-            key={idx}
-            className="flex items-start gap-1.5 text-xs text-zinc-600"
-          >
+          <li key={idx} className="flex items-start gap-1.5 text-xs text-zinc-600">
             <CheckCircle2 className="h-3 w-3 text-black shrink-0 mt-0.5" />
             <span>{takeaway}</span>
           </li>

@@ -1,5 +1,5 @@
-import * as React from "react";
 import { Mic } from "lucide-react";
+import * as React from "react";
 
 export const PodcastStudioHeader: React.FC = () => (
   <div className="flex items-center justify-between pb-3 border-b border-zinc-200">

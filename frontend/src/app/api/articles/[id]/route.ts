@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { getServerArticleById } from "@/lib/server-articles";
 
 interface RouteParams {

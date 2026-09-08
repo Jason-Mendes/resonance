@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Article } from "@/types/article";
-import { usePodcastGeneration } from "@/hooks/usePodcastGeneration";
-import { StudioLayout } from "@/components/layout";
+
 import { ArticleViewer } from "@/components/features/article-viewer";
 import { PodcastStudioSidebar } from "@/components/features/podcast-studio";
+import { StudioLayout } from "@/components/layout";
+import { usePodcastGeneration } from "@/hooks/usePodcastGeneration";
+import { Article } from "@/types/article";
 
 export interface ArticleStudioProps {
   article: Article;

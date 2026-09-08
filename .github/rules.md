@@ -11,6 +11,7 @@ Always create a dedicated branch before making changes. Never work or commit dir
 Format: `<type>/<short-description>` (kebab-case)
 
 ### Prefixes
+
 - `feat/` — New feature or functionality (e.g., `feat/audio-player`)
 - `fix/` — Bug fix or error resolution (e.g., `fix/playback-stutter`)
 - `chore/` — Maintenance, tooling, configs, or documentation (e.g., `chore/ai-rules`)
@@ -26,19 +27,21 @@ Follow Conventional Commits with concise explanations focused on **why** the cha
 Format: `<type>: <summary>`
 
 ### Common Types
+
 - `feat:` A new feature
 - `fix:` A bug fix
 - `chore:` Routine tasks, configuration, or documentation
 - `refactor:` Code improvements without feature or bug changes
 - `test:` Adding or updating tests
 
-*Example:* `feat: add tanstack query client provider for server state hydration`
+_Example:_ `feat: add tanstack query client provider for server state hydration`
 
 ---
 
 ## 3. Pull Request Guidelines
 
 ### Pre-PR Checklist
+
 1. **Target Branch:** Open PRs against `develop` (or `main` if single-branch flow).
 2. **Quality Checks:** Ensure all standard CI checks pass before submitting:
    - Linting (`eslint`)
@@ -48,20 +51,26 @@ Format: `<type>: <summary>`
 3. **Atomic Changes:** Keep PRs small, focused, and scoped strictly to the task.
 
 ### PR Title
+
 Follow conventional commit format:
+
 - `feat: implement user settings screen`
 - `fix: resolve waveform rendering lag`
 - `chore: update github action ci workflows`
 
 ### PR Description Template
+
 ```markdown
 ## Summary
+
 Brief description of what changes were made and why.
 
 ## Key Changes
+
 - Bullet list of specific changes
 
 ## Verification
+
 - [ ] Lint passed
 - [ ] Type check passed
 - [ ] Tests passed

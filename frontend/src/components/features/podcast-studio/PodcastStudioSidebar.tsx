@@ -1,5 +1,10 @@
-import * as React from "react";
 import { Sliders, MessageSquare, FileText } from "lucide-react";
+import * as React from "react";
+
+import { PodcastPlayerCard } from "./PodcastPlayerCard";
+import { PodcastStudioHeader } from "./PodcastStudioHeader";
+import { PodcastStudioTabContent } from "./PodcastStudioTabContent";
+
 import { Tabs, TabItem } from "@/components/ui/Tabs";
 import {
   PodcastEpisode,
@@ -7,9 +12,6 @@ import {
   PodcastGenState,
   PodcastDialogueTurn,
 } from "@/types/podcast";
-import { PodcastPlayerCard } from "./PodcastPlayerCard";
-import { PodcastStudioHeader } from "./PodcastStudioHeader";
-import { PodcastStudioTabContent } from "./PodcastStudioTabContent";
 
 export interface PodcastStudioSidebarProps {
   selectedPairId: string;

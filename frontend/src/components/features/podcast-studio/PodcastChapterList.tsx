@@ -1,5 +1,6 @@
-import * as React from "react";
 import { Bookmark } from "lucide-react";
+import * as React from "react";
+
 import { PodcastChapter } from "@/types/podcast";
 
 export interface PodcastChapterListProps {
@@ -7,10 +8,7 @@ export interface PodcastChapterListProps {
   onSeek: (seconds: number) => void;
 }
 
-export const PodcastChapterList: React.FC<PodcastChapterListProps> = ({
-  chapters,
-  onSeek,
-}) => (
+export const PodcastChapterList: React.FC<PodcastChapterListProps> = ({ chapters, onSeek }) => (
   <div className="space-y-1 pt-2 border-t border-zinc-100">
     <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold flex items-center gap-1">
       <Bookmark className="h-3 w-3 text-black" />
@@ -27,9 +25,7 @@ export const PodcastChapterList: React.FC<PodcastChapterListProps> = ({
           <span className="font-mono text-black text-[11px] font-semibold">
             {chapter.formattedTime}
           </span>
-          <span className="text-zinc-600 truncate max-w-[200px]">
-            {chapter.title}
-          </span>
+          <span className="text-zinc-600 truncate max-w-[200px]">{chapter.title}</span>
         </button>
       ))}
     </div>

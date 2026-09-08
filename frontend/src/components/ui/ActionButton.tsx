@@ -1,5 +1,6 @@
-import * as React from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
+import * as React from "react";
+
 import { Button } from "./Button";
 
 export interface ActionButtonProps {
@@ -21,12 +22,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   onClick,
   type = "button",
 }) => (
-  <Button
-    type={type}
-    onClick={onClick}
-    disabled={isLoading}
-    className={className}
-  >
+  <Button type={type} onClick={onClick} disabled={isLoading} className={className}>
     {isLoading ? (
       <>
         <Loader2 className="h-3.5 w-3.5 animate-spin" />

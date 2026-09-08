@@ -8,21 +8,19 @@
 // can push into a paid model call.
 export const MAX_ARTICLE_CHARS = 50_000;
 
-export type ArticleTextResult =
-  | { ok: true; articleText: string }
-  | { ok: false; error: string };
+export type ArticleTextResult = { ok: true; articleText: string } | { ok: false; error: string };
 
 export function parseArticleText(body: unknown): ArticleTextResult {
-  if (typeof body !== 'object' || body === null) {
-    return { ok: false, error: 'request body must be a JSON object' };
+  if (typeof body !== "object" || body === null) {
+    return { ok: false, error: "request body must be a JSON object" };
   }
 
   const { articleText } = body as { articleText?: unknown };
 
   // Reject non-strings explicitly: a falsy check alone lets objects, arrays
   // and numbers through to the model call.
-  if (typeof articleText !== 'string' || articleText.trim().length === 0) {
-    return { ok: false, error: 'articleText must be a non-empty string' };
+  if (typeof articleText !== "string" || articleText.trim().length === 0) {
+    return { ok: false, error: "articleText must be a non-empty string" };
   }
 
   if (articleText.length > MAX_ARTICLE_CHARS) {

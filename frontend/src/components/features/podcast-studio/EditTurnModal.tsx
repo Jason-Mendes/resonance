@@ -1,7 +1,9 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { PodcastDialogueTurn } from "@/types/podcast";
+
 import { EditTurnForm } from "./EditTurnForm";
+
+import { PodcastDialogueTurn } from "@/types/podcast";
 
 export interface EditTurnModalProps {
   isOpen: boolean;
@@ -45,6 +47,6 @@ export const EditTurnModal: React.FC<EditTurnModalProps> = ({
         />
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };

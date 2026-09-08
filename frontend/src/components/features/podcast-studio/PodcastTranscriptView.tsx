@@ -1,9 +1,11 @@
 import * as React from "react";
-import { PodcastDialogueTurn } from "@/types/podcast";
-import { usePodcastScriptEditor } from "@/hooks/usePodcastScriptEditor";
-import { ScriptTurnItem } from "./ScriptTurnItem";
+
 import { EditTurnModal } from "./EditTurnModal";
 import { PodcastTranscriptToolbar } from "./PodcastTranscriptToolbar";
+import { ScriptTurnItem } from "./ScriptTurnItem";
+
+import { usePodcastScriptEditor } from "@/hooks/usePodcastScriptEditor";
+import { PodcastDialogueTurn } from "@/types/podcast";
 
 export interface PodcastTranscriptViewProps {
   dialogue: PodcastDialogueTurn[];
@@ -16,8 +18,10 @@ export const PodcastTranscriptView: React.FC<PodcastTranscriptViewProps> = ({
   onSeekTo,
   onUpdateDialogue,
 }) => {
-  const { editingTurn, setEditingTurn, saveTurn, deleteTurn, addTurn } =
-    usePodcastScriptEditor(dialogue, onUpdateDialogue);
+  const { editingTurn, setEditingTurn, saveTurn, deleteTurn, addTurn } = usePodcastScriptEditor(
+    dialogue,
+    onUpdateDialogue,
+  );
 
   return (
     <div className="space-y-3">
@@ -25,12 +29,7 @@ export const PodcastTranscriptView: React.FC<PodcastTranscriptViewProps> = ({
 
       <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
         {dialogue.map((turn) => (
-          <ScriptTurnItem
-            key={turn.id}
-            turn={turn}
-            onSeekTo={onSeekTo}
-            onEdit={setEditingTurn}
-          />
+          <ScriptTurnItem key={turn.id} turn={turn} onSeekTo={onSeekTo} onEdit={setEditingTurn} />
         ))}
       </div>
 
