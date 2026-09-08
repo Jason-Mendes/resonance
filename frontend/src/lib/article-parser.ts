@@ -1,5 +1,5 @@
-import { Article, ArticleSection } from "@/types/article";
 import { SAMPLE_ARTICLES } from "@/constants/sample-articles";
+import { Article, ArticleSection } from "@/types/article";
 
 export interface RawTextInput {
   title: string;
@@ -11,9 +11,7 @@ export interface RawTextInput {
 }
 
 export const createFallbackUrlArticle = (targetUrl: string): Article => {
-  const matchingPreset = SAMPLE_ARTICLES.find(
-    (a) => a.sourceUrl && targetUrl.includes(a.id)
-  );
+  const matchingPreset = SAMPLE_ARTICLES.find((a) => a.sourceUrl && targetUrl.includes(a.id));
   if (matchingPreset) return matchingPreset;
 
   const domain = targetUrl.replace(/^https?:\/\//, "").split("/")[0] || "Online Wire";
@@ -57,13 +55,19 @@ export const createFallbackUrlArticle = (targetUrl: string): Article => {
   };
 };
 
-export const parseRawTextToArticle = (input: RawTextInput): Article => {
-  const rawParagraphs = input.content
+/**
+ * Turns pasted manuscript text into typed article sections.
+ *
+ * Split out of parseRawTextToArticle so each function does one thing: this one
+ * interprets the markup, that one assembles the Article.
+ */
+const toArticleSections = (content: string, quoteAuthor: string): ArticleSection[] => {
+  const rawParagraphs = content
     .split(/\n\n+/)
     .map((p) => p.trim())
     .filter(Boolean);
 
-  const parsedSections: ArticleSection[] = rawParagraphs.map((p, idx) => {
+  return rawParagraphs.map((p, idx) => {
     if (idx === 0) return { id: `p-${idx}`, type: "lead", content: p };
     if (p.startsWith("## ") || p.startsWith("# ")) {
       return { id: `p-${idx}`, type: "heading", content: p.replace(/^#+\s*/, "") };
@@ -73,11 +77,15 @@ export const parseRawTextToArticle = (input: RawTextInput): Article => {
         id: `p-${idx}`,
         type: "quote",
         content: p.replace(/^>\s*/, ""),
-        quoteAuthor: input.authorName || "Editorial",
+        quoteAuthor,
       };
     }
     return { id: `p-${idx}`, type: "paragraph", content: p };
   });
+};
+
+export const parseRawTextToArticle = (input: RawTextInput): Article => {
+  const parsedSections = toArticleSections(input.content, input.authorName || "Editorial");
 
   const wordCount = input.content.trim().split(/\s+/).length;
   const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
@@ -105,6 +113,12 @@ export const parseRawTextToArticle = (input: RawTextInput): Article => {
     sections:
       parsedSections.length > 0
         ? parsedSections
-        : [{ id: "def-1", type: "paragraph", content: input.content || "No body content provided." }],
+        : [
+            {
+              id: "def-1",
+              type: "paragraph",
+              content: input.content || "No body content provided.",
+            },
+          ],
   };
 };

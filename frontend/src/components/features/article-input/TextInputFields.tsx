@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { FormField } from "@/components/ui/FormField";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -10,11 +11,7 @@ export interface TextInputFieldsProps {
   error?: string | null;
 }
 
-export const TextInputFields: React.FC<TextInputFieldsProps> = ({
-  state,
-  onChange,
-  error,
-}) => (
+export const TextInputFields: React.FC<TextInputFieldsProps> = ({ state, onChange, error }) => (
   <>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
       <FormField label="Title *">

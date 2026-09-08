@@ -1,6 +1,7 @@
-import * as React from "react";
-import Image from "next/image";
 import { Clock, Calendar, User } from "lucide-react";
+import Image from "next/image";
+import * as React from "react";
+
 import { ArticleAuthor } from "@/types/article";
 
 export interface ArticleBylineProps {

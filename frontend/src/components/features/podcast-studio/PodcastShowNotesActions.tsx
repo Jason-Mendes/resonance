@@ -1,5 +1,6 @@
-import * as React from "react";
 import { Download, Rss, Check } from "lucide-react";
+import * as React from "react";
+
 import { Button } from "@/components/ui/Button";
 
 export interface PodcastShowNotesActionsProps {
@@ -9,9 +10,12 @@ export interface PodcastShowNotesActionsProps {
   onDownload: () => void;
 }
 
-export const PodcastShowNotesActions: React.FC<
-  PodcastShowNotesActionsProps
-> = ({ copiedFeed, isDownloading, onCopyFeed, onDownload }) => (
+export const PodcastShowNotesActions: React.FC<PodcastShowNotesActionsProps> = ({
+  copiedFeed,
+  isDownloading,
+  onCopyFeed,
+  onDownload,
+}) => (
   <div className="grid grid-cols-2 gap-2">
     <Button
       variant="outline"

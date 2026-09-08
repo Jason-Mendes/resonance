@@ -1,6 +1,8 @@
 import * as React from "react";
-import { PodcastDialogueTurn } from "@/types/podcast";
+
 import { ScriptTurnHeader } from "./ScriptTurnHeader";
+
+import { PodcastDialogueTurn } from "@/types/podcast";
 
 export interface ScriptTurnItemProps {
   turn: PodcastDialogueTurn;
@@ -8,11 +10,7 @@ export interface ScriptTurnItemProps {
   onEdit: (turn: PodcastDialogueTurn) => void;
 }
 
-export const ScriptTurnItem: React.FC<ScriptTurnItemProps> = ({
-  turn,
-  onSeekTo,
-  onEdit,
-}) => {
+export const ScriptTurnItem: React.FC<ScriptTurnItemProps> = ({ turn, onSeekTo, onEdit }) => {
   const isLead = turn.speaker === "Host 1";
 
   return (

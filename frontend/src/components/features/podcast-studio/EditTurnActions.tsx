@@ -1,5 +1,6 @@
-import * as React from "react";
 import { Trash2, Check } from "lucide-react";
+import * as React from "react";
+
 import { Button } from "@/components/ui/Button";
 
 export interface EditTurnActionsProps {
@@ -8,11 +9,7 @@ export interface EditTurnActionsProps {
   onDelete?: () => void;
 }
 
-export const EditTurnActions: React.FC<EditTurnActionsProps> = ({
-  onCancel,
-  onSave,
-  onDelete,
-}) => (
+export const EditTurnActions: React.FC<EditTurnActionsProps> = ({ onCancel, onSave, onDelete }) => (
   <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
     {onDelete ? (
       <Button

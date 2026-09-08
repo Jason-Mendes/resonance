@@ -1,9 +1,11 @@
-import * as React from "react";
 import { ExternalLink } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
-import { Article } from "@/types/article";
+import * as React from "react";
+
 import { ArticleByline } from "./ArticleByline";
 import { ArticleHeroFigure } from "./ArticleHeroFigure";
+
+import { Badge } from "@/components/ui/Badge";
+import { Article } from "@/types/article";
 
 export interface ArticleHeaderProps {
   article: Article;

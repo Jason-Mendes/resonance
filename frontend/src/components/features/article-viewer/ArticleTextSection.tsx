@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { ArticleSection, ArticleSectionType } from "@/types/article";
 
 interface TextSectionStyle {
@@ -42,9 +43,7 @@ export interface ArticleTextSectionProps {
   section: ArticleSection;
 }
 
-export const ArticleTextSection: React.FC<ArticleTextSectionProps> = ({
-  section,
-}) => {
+export const ArticleTextSection: React.FC<ArticleTextSectionProps> = ({ section }) => {
   const { as: Tag, className } = TEXT_SECTION_STYLES[section.type] ?? PARAGRAPH_STYLE;
 
   return <Tag className={className}>{section.content}</Tag>;

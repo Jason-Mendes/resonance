@@ -21,8 +21,8 @@ Hosting, App Engine, or equivalent).
 - Anything merged to `main` must survive being deployed. If a change cannot
   be deployed, it is not done.
 
-Developing locally is expected and fine. This rule constrains the *demo
-surface*, not the development loop.
+Developing locally is expected and fine. This rule constrains the _demo
+surface_, not the development loop.
 
 ---
 
@@ -87,8 +87,9 @@ a coding agent.
 - **Active engagement & mentorship** — tap in to mentors[^1] to help.
 - **Unleash creativity.**
 
-[^1]: The right-hand edge of the source slide is cropped in the photo; the
-remainder of this line could not be read and has not been reconstructed.
+[^1]:
+    The right-hand edge of the source slide is cropped in the photo; the
+    remainder of this line could not be read and has not been reconstructed.
 
 ---
 
