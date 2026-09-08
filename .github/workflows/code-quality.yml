@@ -1,0 +1,61 @@
+name: Code Quality
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A new commit on the same PR supersedes its own earlier run. Different PRs
+# never cancel each other because refs/pull/<N>/merge is unique per PR.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The gate. `--max-warnings=0` is in the lint script, so any finding at
+      # any severity exits non-zero and fails the check.
+      - name: Lint
+        run: npm run lint
+
+      # Conditional: backend/ is not committed yet. Once backend/package.json
+      # and tsconfig.json land, this step starts enforcing on its own.
+      - name: Backend type check
+        run: |
+          if [ ! -f backend/tsconfig.json ]; then
+            echo "backend/tsconfig.json not present, skipping"
+            exit 0
+          fi
+          cd backend
+          npm ci
+          npx tsc --noEmit
+
+      # Guards against a dependency tree being committed. .gitignore covers
+      # node_modules, but a forced add or a stale index would slip past it.
+      - name: Reject committed dependencies
+        run: |
+          TRACKED=$(git ls-files | grep -E '(^|/)node_modules/' || true)
+          if [ -n "$TRACKED" ]; then
+            echo "node_modules is tracked in git. Remove it before merging:"
+            echo "$TRACKED" | head -20
+            exit 1
+          fi
+          echo "no tracked node_modules"
