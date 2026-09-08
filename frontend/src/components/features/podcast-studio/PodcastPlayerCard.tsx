@@ -1,10 +1,12 @@
 import * as React from "react";
-import { PodcastEpisode } from "@/types/podcast";
-import { useAudioPlayback } from "@/hooks/useAudioPlayback";
+
+import { PodcastChapterList } from "./PodcastChapterList";
+import { PodcastPlayerControls } from "./PodcastPlayerControls";
 import { PodcastPlayerHeader } from "./PodcastPlayerHeader";
 import { PodcastWaveform } from "./PodcastWaveform";
-import { PodcastPlayerControls } from "./PodcastPlayerControls";
-import { PodcastChapterList } from "./PodcastChapterList";
+
+import { useAudioPlayback } from "@/hooks/useAudioPlayback";
+import { PodcastEpisode } from "@/types/podcast";
 
 export interface PodcastPlayerCardProps {
   episode: PodcastEpisode;
@@ -16,15 +18,8 @@ export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({
   episode,
   onSeekRequested,
 }) => {
-  const {
-    isPlaying,
-    currentTime,
-    playbackSpeed,
-    togglePlay,
-    seekTo,
-    cycleSpeed,
-    formatTime,
-  } = useAudioPlayback(episode.durationSeconds);
+  const { isPlaying, currentTime, playbackSpeed, togglePlay, seekTo, cycleSpeed, formatTime } =
+    useAudioPlayback(episode.durationSeconds);
 
   const handleSeek = (secs: number) => {
     seekTo(secs);

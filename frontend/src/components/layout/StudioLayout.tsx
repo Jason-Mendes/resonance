@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { cn } from "@/lib/utils";
 
 export interface StudioLayoutProps {
@@ -24,9 +25,7 @@ export const StudioLayout: React.FC<StudioLayoutProps> = ({
 
         {/* Right Column: Audio Dialogue Generation */}
         <aside className="lg:col-span-5 xl:col-span-5 min-w-0 sticky top-20">
-          <div className="bg-white rounded-none border border-zinc-200 p-5">
-            {childrenRight}
-          </div>
+          <div className="bg-white rounded-none border border-zinc-200 p-5">{childrenRight}</div>
         </aside>
       </div>
     </div>

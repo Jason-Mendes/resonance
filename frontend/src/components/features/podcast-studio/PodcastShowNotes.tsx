@@ -1,7 +1,9 @@
 import * as React from "react";
-import { PodcastEpisode } from "@/types/podcast";
+
 import { PodcastNotesCard } from "./PodcastNotesCard";
 import { PodcastShowNotesActions } from "./PodcastShowNotesActions";
+
+import { PodcastEpisode } from "@/types/podcast";
 
 const COPIED_RESET_MS = 2000;
 const EXPORT_DELAY_MS = 800;
@@ -10,16 +12,12 @@ export interface PodcastShowNotesProps {
   episode: PodcastEpisode;
 }
 
-export const PodcastShowNotes: React.FC<PodcastShowNotesProps> = ({
-  episode,
-}) => {
+export const PodcastShowNotes: React.FC<PodcastShowNotesProps> = ({ episode }) => {
   const [copiedFeed, setCopiedFeed] = React.useState(false);
   const [isDownloading, setIsDownloading] = React.useState(false);
 
   const handleCopyFeed = () => {
-    navigator.clipboard.writeText(
-      `https://resonance.media/podcasts/episodes/${episode.id}.xml`
-    );
+    navigator.clipboard.writeText(`https://resonance.media/podcasts/episodes/${episode.id}.xml`);
     setCopiedFeed(true);
     setTimeout(() => setCopiedFeed(false), COPIED_RESET_MS);
   };

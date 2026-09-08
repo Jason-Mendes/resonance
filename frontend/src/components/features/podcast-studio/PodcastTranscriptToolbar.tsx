@@ -1,8 +1,9 @@
-import * as React from "react";
 import { Copy, Check, MessageSquare, Plus } from "lucide-react";
+import * as React from "react";
+
 import { Button } from "@/components/ui/Button";
-import { PodcastDialogueTurn } from "@/types/podcast";
 import { formatDialogueAsScript } from "@/lib/podcast-script";
+import { PodcastDialogueTurn } from "@/types/podcast";
 
 const COPIED_RESET_MS = 2000;
 
@@ -11,9 +12,10 @@ export interface PodcastTranscriptToolbarProps {
   onAddTurn: () => void;
 }
 
-export const PodcastTranscriptToolbar: React.FC<
-  PodcastTranscriptToolbarProps
-> = ({ dialogue, onAddTurn }) => {
+export const PodcastTranscriptToolbar: React.FC<PodcastTranscriptToolbarProps> = ({
+  dialogue,
+  onAddTurn,
+}) => {
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = () => {
@@ -46,11 +48,7 @@ export const PodcastTranscriptToolbar: React.FC<
           onClick={handleCopy}
           className="h-7 px-2 text-xs gap-1 border-zinc-200 rounded-none"
         >
-          {copied ? (
-            <Check className="h-3 w-3 text-black" />
-          ) : (
-            <Copy className="h-3 w-3" />
-          )}
+          {copied ? <Check className="h-3 w-3 text-black" /> : <Copy className="h-3 w-3" />}
           <span>{copied ? "Copied" : "Copy"}</span>
         </Button>
       </div>

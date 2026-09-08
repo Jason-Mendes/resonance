@@ -1,5 +1,6 @@
-import * as React from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
+import * as React from "react";
+
 import { Button } from "@/components/ui/Button";
 
 export interface PodcastPlayerControlsProps {

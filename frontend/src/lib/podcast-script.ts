@@ -10,9 +10,7 @@ const formatTimestamp = (totalSeconds: number): string => {
 };
 
 /** Builds an empty turn that follows on from the last one, alternating speakers. */
-export const createNextDialogueTurn = (
-  dialogue: PodcastDialogueTurn[]
-): PodcastDialogueTurn => {
+export const createNextDialogueTurn = (dialogue: PodcastDialogueTurn[]): PodcastDialogueTurn => {
   const lastTurn = dialogue[dialogue.length - 1];
   const speaker = lastTurn?.speaker === "Host 1" ? "Host 2" : "Host 1";
   const timeSeconds = (lastTurn?.timeSeconds || 0) + TURN_GAP_SECONDS;
@@ -27,9 +25,5 @@ export const createNextDialogueTurn = (
   };
 };
 
-export const formatDialogueAsScript = (
-  dialogue: PodcastDialogueTurn[]
-): string =>
-  dialogue
-    .map((turn) => `[${turn.timestamp}] ${turn.speaker}:\n${turn.text}`)
-    .join("\n\n");
+export const formatDialogueAsScript = (dialogue: PodcastDialogueTurn[]): string =>
+  dialogue.map((turn) => `[${turn.timestamp}] ${turn.speaker}:\n${turn.text}`).join("\n\n");
