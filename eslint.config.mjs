@@ -1,5 +1,5 @@
 /**
- * Root ESLint flat config (ESLint 9).
+ * Root ESLint flat config (ESLint 10).
  *
  * Syntactic-only on purpose: no `parserOptions.project`, so no type-aware
  * rules. The backend pins typescript@^7.0.2 while typescript-eslint@8 declares
