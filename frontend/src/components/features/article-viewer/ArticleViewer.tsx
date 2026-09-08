@@ -1,8 +1,10 @@
 import * as React from "react";
+
+import { ArticleBody } from "./ArticleBody";
+import { ArticleHeader } from "./ArticleHeader";
+
 import { Badge } from "@/components/ui/Badge";
 import { Article } from "@/types/article";
-import { ArticleHeader } from "./ArticleHeader";
-import { ArticleBody } from "./ArticleBody";
 
 export interface ArticleViewerProps {
   article: Article;

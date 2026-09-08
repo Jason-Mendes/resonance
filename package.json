@@ -6,13 +6,17 @@
   "license": "UNLICENSED",
   "scripts": {
     "lint": "eslint . --max-warnings=0",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import-x": "^4.17.1",
     "globals": "^16.0.0",
+    "prettier": "^3.9.6",
     "typescript-eslint": "^8.70.0"
   }
 }

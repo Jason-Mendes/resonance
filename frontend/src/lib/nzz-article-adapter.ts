@@ -12,28 +12,19 @@ const FALLBACK_READ_MINUTES = 5;
 const FALLBACK_WORD_COUNT = 1200;
 const SECONDS_PER_MINUTE = 60;
 
-type BodyItemMapper = (
-  item: NzzArticleBodyItem,
-  id: string
-) => ArticleSection | null;
+type BodyItemMapper = (item: NzzArticleBodyItem, id: string) => ArticleSection | null;
 
 /**
  * One mapper per supported NZZ body item type. Returning null drops the item,
  * which is how items missing their payload (text, url) are skipped.
  */
 const BODY_ITEM_MAPPERS: Record<string, BodyItemMapper> = {
-  paragraph: (item, id) =>
-    item.text ? { id, type: "paragraph", content: item.text } : null,
-  heading: (item, id) =>
-    item.text ? { id, type: "heading", content: item.text } : null,
-  question: (item, id) =>
-    item.text ? { id, type: "question", content: item.text } : null,
-  answer: (item, id) =>
-    item.text ? { id, type: "answer", content: item.text } : null,
+  paragraph: (item, id) => (item.text ? { id, type: "paragraph", content: item.text } : null),
+  heading: (item, id) => (item.text ? { id, type: "heading", content: item.text } : null),
+  question: (item, id) => (item.text ? { id, type: "question", content: item.text } : null),
+  answer: (item, id) => (item.text ? { id, type: "answer", content: item.text } : null),
   quote: (item, id) =>
-    item.text
-      ? { id, type: "quote", content: item.text, quoteAuthor: item.author }
-      : null,
+    item.text ? { id, type: "quote", content: item.text, quoteAuthor: item.author } : null,
   image: (item, id) =>
     item.url
       ? {
