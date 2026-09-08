@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 // import { WebSocketServer } from 'ws';
 
 // We will import routes once we create them
+import { briefingRouter } from "./routes/briefing.js";
 import { flexreadRouter } from "./routes/flexread.js";
 import { podcastRouter } from "./routes/podcast.js";
 import { ttsRouter } from "./routes/tts.js";
@@ -52,6 +53,7 @@ app.use("/api", apiLimiter);
 app.use("/api/flexread", flexreadRouter);
 app.use("/api/podcast", podcastRouter);
 app.use("/api/tts", ttsRouter);
+app.use("/api/briefing", briefingRouter);
 
 // Set up WebSocket server for Gemini Live
 // const wss = new WebSocketServer({ server, path: '/api/voice-chat' });

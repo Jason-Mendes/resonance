@@ -52,7 +52,7 @@ function escapeForSsml(text: string): string {
     .replace(/'/g, "&apos;");
 }
 
-async function synthesizeTurn(turn: ScriptTurn): Promise<Buffer> {
+async function synthesizeTurn(turn: ScriptTurn, voiceOverride?: string): Promise<Buffer> {
   // The pause lives inside this turn's audio, so the gap survives however the
   // segments are later joined.
   const ssml = `<speak>${escapeForSsml(turn.text)}<break time="${PAUSE_AFTER_TURN_MS}ms"/></speak>`;
@@ -61,7 +61,7 @@ async function synthesizeTurn(turn: ScriptTurn): Promise<Buffer> {
     input: { ssml },
     voice: {
       languageCode: LANGUAGE_CODE,
-      name: VOICE_BY_SPEAKER[turn.speaker] ?? FALLBACK_VOICE,
+      name: voiceOverride ?? VOICE_BY_SPEAKER[turn.speaker] ?? FALLBACK_VOICE,
     },
     audioConfig: {
       audioEncoding: "MP3",
@@ -185,4 +185,17 @@ export async function synthesizeDialogue(script: ScriptTurn[]): Promise<Rendered
     throw new Error("Gemini returned no audio for the dialogue");
   }
   return { audio: pcmToWav(Buffer.from(inline.data, "base64")), mimeType: "audio/wav" };
+}
+
+// The voice from the dialogue pairing that read most naturally on its own.
+const BRIEFING_VOICE = "en-US-Studio-O";
+
+/**
+ * Renders a single-voice briefing. One speaker, so there is no dialogue for a
+ * multi-speaker model to coordinate, and Cloud TTS Studio is the better fit:
+ * it is generally available rather than preview, and cheaper per run.
+ */
+export async function synthesizeBriefing(text: string): Promise<RenderedAudio> {
+  const audio = await synthesizeTurn({ speaker: "__briefing", text }, BRIEFING_VOICE);
+  return { audio, mimeType: "audio/mpeg" };
 }
