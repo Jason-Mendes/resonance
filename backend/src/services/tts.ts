@@ -4,8 +4,9 @@
  * disallows them. Locally that means `gcloud auth application-default login`;
  * on Cloud Run the service account is picked up automatically.
  */
-import { GoogleGenAI } from "@google/genai";
 import textToSpeech from "@google-cloud/text-to-speech";
+
+import { getVertexClient } from "../lib/vertex.js";
 
 const client = new textToSpeech.TextToSpeechClient();
 
@@ -58,7 +59,10 @@ async function synthesizeTurn(turn: ScriptTurn): Promise<Buffer> {
 
   const [response] = await client.synthesizeSpeech({
     input: { ssml },
-    voice: { languageCode: LANGUAGE_CODE, name: VOICE_BY_SPEAKER[turn.speaker] ?? FALLBACK_VOICE },
+    voice: {
+      languageCode: LANGUAGE_CODE,
+      name: VOICE_BY_SPEAKER[turn.speaker] ?? FALLBACK_VOICE,
+    },
     audioConfig: {
       audioEncoding: "MP3",
       sampleRateHertz: SAMPLE_RATE_HZ,
@@ -113,29 +117,6 @@ const WAV_HEADER_BYTES = 44;
 
 // Used if the model invents a speaker the mapping does not cover.
 const DEFAULT_DIALOGUE_VOICE = "Algieba";
-
-/**
- * Vertex, not the Gemini Developer API: the project's organisation policy
- * disallows API keys, so this authenticates by Application Default
- * Credentials like the Cloud TTS client above. Built on first use rather than
- * at import, so the rest of the backend still starts without Vertex config.
- */
-let vertexClient: GoogleGenAI | undefined;
-
-function getVertexClient(): GoogleGenAI {
-  if (vertexClient) return vertexClient;
-
-  const project = process.env.VERTEX_PROJECT;
-  if (!project) {
-    throw new Error("VERTEX_PROJECT is not set, so dialogue audio cannot be generated");
-  }
-  vertexClient = new GoogleGenAI({
-    vertexai: true,
-    project,
-    location: process.env.VERTEX_LOCATION ?? "us-central1",
-  });
-  return vertexClient;
-}
 
 /** Wraps raw PCM in a WAV container so browsers and players can read it. */
 function pcmToWav(pcm: Buffer): Buffer {
