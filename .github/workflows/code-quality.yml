@@ -12,6 +12,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Read-only. Nothing here writes to the repo, opens issues, or publishes.
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint and type check
@@ -19,8 +23,14 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      # persist-credentials: false keeps GITHUB_TOKEN out of .git/config.
+      # `npm ci` below runs dependency install scripts, which would otherwise
+      # be arbitrary code sitting next to a readable token. Nothing here
+      # pushes, so the credential is not needed.
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -42,6 +52,16 @@ jobs:
         run: |
           if [ ! -f backend/tsconfig.json ]; then
             echo "backend/tsconfig.json not present, skipping"
+            exit 0
+          fi
+          if [ ! -f backend/package.json ]; then
+            echo "backend/tsconfig.json exists but package.json does not, skipping"
+            exit 0
+          fi
+          # npm ci requires a lockfile and fails without one. Skip rather than
+          # fail if the backend lands one file at a time.
+          if [ ! -f backend/package-lock.json ] && [ ! -f backend/npm-shrinkwrap.json ]; then
+            echo "no backend lockfile, skipping"
             exit 0
           fi
           cd backend
