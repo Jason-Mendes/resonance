@@ -43,3 +43,7 @@ pnpm-debug.log*
 # Hackathon data and large assets, kept out of git
 Data/
 Challenges.docx
+
+# Story Engine
+LiquidStoryEngine/
+liquidstoryEngine/
