@@ -1,19 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
 import * as dotenv from "dotenv";
 
+import { getVertexClient } from "../lib/vertex.js";
+
 dotenv.config();
-
-// Fail at startup rather than on the first request. Without this the server
-// boots healthy and every article request returns an opaque auth error.
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error(
-    "GEMINI_API_KEY is not set. Add it to backend/.env or the deployment environment.",
-  );
-}
-
-// Initialize the Gemini client
-export const genAI = new GoogleGenAI({ apiKey });
 
 // The model we want to use for heavy text reasoning
 const TEXT_MODEL = "gemini-2.5-flash";
@@ -38,7 +27,7 @@ export async function generateFlexReadLayers(articleText: string) {
     ${articleText}
   `;
 
-  const response = await genAI.models.generateContent({
+  const response = await getVertexClient().models.generateContent({
     model: TEXT_MODEL,
     contents: prompt,
     config: {
@@ -82,7 +71,7 @@ export async function generatePodcastScript(articleText: string) {
     ${articleText}
   `;
 
-  const response = await genAI.models.generateContent({
+  const response = await getVertexClient().models.generateContent({
     model: TEXT_MODEL,
     contents: prompt,
     config: {
