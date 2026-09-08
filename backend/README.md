@@ -7,14 +7,22 @@ Express and TypeScript, calling Gemini. ES modules, so relative imports carry a
 
 ```bash
 cd backend
-cp .env.example .env     # then fill in GEMINI_API_KEY
+cp .env.example .env
+gcloud auth application-default login
+gcloud auth application-default set-quota-project nzz-sbx-hckthn08
 npm install
 npm run dev              # tsx watch, restarts on save
 ```
 
-The server throws at startup if `GEMINI_API_KEY` or `FRONTEND_ORIGIN` is
-missing. That is deliberate: a missing key should stop the process, not surface
-as an opaque auth error on the first article request.
+There is no API key. The organisation policy on the hackathon project
+disallows them, so Gemini and Cloud Text-to-Speech both authenticate through
+Application Default Credentials. On Cloud Run the service account is used
+automatically and neither `gcloud` command applies.
+
+The server throws at startup if `FRONTEND_ORIGIN` is missing, since a server
+running without a CORS origin is a hole rather than an inconvenience.
+`VERTEX_PROJECT` fails on first use instead, so a missing value breaks the one
+request that needed it rather than the whole backend.
 
 ## Scripts
 
@@ -26,10 +34,15 @@ as an opaque auth error on the first article request.
 
 ## Endpoints
 
-| Method | Path            | Notes                                                 |
-| ------ | --------------- | ----------------------------------------------------- |
-| GET    | `/health`       | Outside the rate limiter, for uptime probes           |
-| POST   | `/api/flexread` | Body `{ articleText: string }`, max 50,000 characters |
+| Method | Path                                 | Notes                                                      |
+| ------ | ------------------------------------ | ---------------------------------------------------------- |
+| GET    | `/health`                            | Outside the rate limiter, for uptime probes                |
+| POST   | `/api/flexread`                      | Body `{ articleText: string }`, max 50,000 characters      |
+| POST   | `/api/podcast`                       | Same body. Returns `{ script: [{ speaker, text }] }`       |
+| POST   | `/api/tts`                           | Body `{ script }`. Returns `202` and a job id              |
+| POST   | `/api/briefing`                      | Same body as flexread. Article in, 60 seconds of audio out |
+| GET    | `/api/{tts,briefing}/jobs/:id`       | Job status. Poll until `done` or `failed`                  |
+| GET    | `/api/{tts,briefing}/jobs/:id/audio` | The audio. `409` until the job is done                     |
 
 `/api` is rate limited to 60 requests per IP per 15 minutes. The endpoint is
 unauthenticated, so that limit is what stops an open URL from draining the
