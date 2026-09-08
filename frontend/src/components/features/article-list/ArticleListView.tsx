@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { useArticlesList } from "@/hooks/useArticlesQuery";
 import { ArticleCard } from "./ArticleCard";
 
@@ -26,7 +26,6 @@ export const ArticleListView: React.FC<ArticleListViewProps> = ({
         </p>
       </div>
 
-      {/* Loading state */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-24 space-y-2 text-zinc-400">
           <Loader2 className="h-5 w-5 animate-spin text-black" />
@@ -34,22 +33,13 @@ export const ArticleListView: React.FC<ArticleListViewProps> = ({
         </div>
       )}
 
-      {/* Error state */}
       {isError && (
-        <div className="text-center py-16 space-y-3">
-          <p className="text-xs text-red-600">Failed to load articles.</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            className="rounded-none border-zinc-200"
-          >
-            Retry
-          </Button>
-        </div>
+        <ErrorState
+          message="Failed to load articles."
+          onRetry={() => refetch()}
+        />
       )}
 
-      {/* Article Grid */}
       {articles && articles.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {articles.map((article) => (

@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Link2, ArrowRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Link2 } from "lucide-react";
+import { ActionButton } from "@/components/ui/ActionButton";
 import { Input } from "@/components/ui/Input";
 
 export interface UrlInputTabProps {
@@ -42,23 +42,13 @@ export const UrlInputTab: React.FC<UrlInputTabProps> = ({
               error={error || undefined}
             />
           </div>
-          <Button
+          <ActionButton
+            label="Pull Article"
+            loadingLabel="Pulling..."
+            isLoading={isLoading}
             type="submit"
-            disabled={isLoading}
             className="h-10 px-5 gap-1.5 bg-black hover:bg-zinc-800 text-white text-xs"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Pulling...</span>
-              </>
-            ) : (
-              <>
-                <span>Pull Article</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </>
-            )}
-          </Button>
+          />
         </div>
       </form>
     </div>

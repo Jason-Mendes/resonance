@@ -1,7 +1,7 @@
 import * as React from "react";
-import Image from "next/image";
 import { Clock } from "lucide-react";
 import { ArticleSummary } from "@/hooks/useArticlesQuery";
+import { ArticleCardImage } from "./ArticleCardImage";
 
 export interface ArticleCardProps {
   article: ArticleSummary;
@@ -18,17 +18,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
       className="group relative flex flex-col justify-between border border-zinc-200 bg-white p-6 cursor-pointer select-none rounded-none"
     >
       <div>
-        {/* Sharp Image Frame */}
         {article.heroImage?.url && (
-          <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-100 rounded-none mb-4 border border-zinc-100">
-            <Image
-              src={article.heroImage.url}
-              alt={article.title}
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          </div>
+          <ArticleCardImage url={article.heroImage.url} alt={article.title} />
         )}
 
         {/* Header Kicker & Read Time */}
