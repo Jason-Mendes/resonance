@@ -1,24 +1,22 @@
 import { Router } from 'express';
 import { parseArticleText } from '../lib/articleText.js';
-import { generateFlexReadLayers } from '../services/gemini.js';
+import { generatePodcastScript } from '../services/gemini.js';
 
-export const flexreadRouter = Router();
+export const podcastRouter = Router();
 
-flexreadRouter.post('/', async (req, res) => {
+podcastRouter.post('/', async (req, res) => {
   const parsed = parseArticleText(req.body);
   if (!parsed.ok) {
     return res.status(400).json({ error: parsed.error });
   }
 
   try {
-    const layers = await generateFlexReadLayers(parsed.articleText);
-
-    // The full text is the deepest layer, returned alongside the generated ones.
-    res.json({ ...layers, fullText: parsed.articleText });
+    const script = await generatePodcastScript(parsed.articleText);
+    res.json({ script });
   } catch (error) {
     // Detail stays server-side. Gemini SDK errors can name models and quota
     // state, none of which belongs in a response to an anonymous caller.
-    console.error('FlexRead API Error:', error);
+    console.error('Podcast API Error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
