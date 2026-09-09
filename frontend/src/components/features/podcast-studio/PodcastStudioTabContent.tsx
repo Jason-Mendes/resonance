@@ -21,9 +21,17 @@ export interface PodcastStudioTabContentProps {
   progress: number;
   error: string | null;
   episode: PodcastEpisode | null;
+  /** Turns with timings stretched onto the real audio, not the estimate. */
+  dialogue: PodcastDialogueTurn[];
+  activeTurnId: string | null;
+  onSeekTo: (seconds: number) => void;
   onGenerate: () => void;
   onUpdateDialogue?: (dialogue: PodcastDialogueTurn[]) => void;
 }
+
+const EmptyTab: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="text-center py-8 text-xs text-zinc-400">{children}</div>
+);
 
 export const PodcastStudioTabContent: React.FC<PodcastStudioTabContentProps> = ({
   activeTab,
@@ -35,6 +43,9 @@ export const PodcastStudioTabContent: React.FC<PodcastStudioTabContentProps> = (
   progress,
   error,
   episode,
+  dialogue,
+  activeTurnId,
+  onSeekTo,
   onGenerate,
   onUpdateDialogue,
 }) => (
@@ -55,20 +66,21 @@ export const PodcastStudioTabContent: React.FC<PodcastStudioTabContentProps> = (
 
     {activeTab === "transcript" &&
       (episode ? (
-        <PodcastTranscriptView dialogue={episode.dialogue} onUpdateDialogue={onUpdateDialogue} />
+        <PodcastTranscriptView
+          dialogue={dialogue}
+          activeTurnId={activeTurnId}
+          onSeekTo={onSeekTo}
+          onUpdateDialogue={onUpdateDialogue}
+        />
       ) : (
-        <div className="text-center py-8 text-xs text-zinc-400">
-          No audio generated yet. Click &quot;Generate Audio&quot;.
-        </div>
+        <EmptyTab>No audio generated yet. Click &quot;Generate Audio&quot;.</EmptyTab>
       ))}
 
     {activeTab === "notes" &&
       (episode ? (
         <PodcastShowNotes episode={episode} />
       ) : (
-        <div className="text-center py-8 text-xs text-zinc-400">
-          Notes available after generation.
-        </div>
+        <EmptyTab>Notes available after generation.</EmptyTab>
       ))}
   </div>
 );

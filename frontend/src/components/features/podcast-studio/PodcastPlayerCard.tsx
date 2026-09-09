@@ -5,18 +5,20 @@ import { PodcastPlayerControls } from "./PodcastPlayerControls";
 import { PodcastPlayerHeader } from "./PodcastPlayerHeader";
 import { PodcastWaveform } from "./PodcastWaveform";
 
-import { useAudioPlayback } from "@/hooks/useAudioPlayback";
-import { PodcastEpisode } from "@/types/podcast";
+import { AudioPlayback } from "@/hooks/useAudioPlayback";
+import { PodcastDialogueTurn, PodcastEpisode } from "@/types/podcast";
 
 export interface PodcastPlayerCardProps {
   episode: PodcastEpisode;
-  activeTimestampSeconds?: number;
-  onSeekRequested?: (seconds: number) => void;
+  /** Turns with timings already stretched onto the real audio length. */
+  dialogue: PodcastDialogueTurn[];
+  playback: AudioPlayback;
 }
 
 export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({
   episode,
-  onSeekRequested,
+  dialogue,
+  playback,
 }) => {
   const {
     audioRef,
@@ -28,17 +30,14 @@ export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({
     seekTo,
     cycleSpeed,
     formatTime,
-  } = useAudioPlayback(episode.audioUrl);
+  } = playback;
 
   // The rendered file's own length once known, falling back to the script
   // estimate while metadata is still loading.
   const trackSeconds = duration || episode.durationSeconds;
   const isReady = episode.audioUrl !== null;
 
-  const handleSeek = (secs: number) => {
-    seekTo(secs);
-    if (onSeekRequested) onSeekRequested(secs);
-  };
+  const handleSeek = (secs: number) => seekTo(secs);
 
   return (
     <div className="border border-zinc-200 bg-white p-4 space-y-3.5 rounded-none">
@@ -70,7 +69,7 @@ export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({
         />
       </div>
 
-      <PodcastChapterList chapters={episode.chapters} onSeek={handleSeek} />
+      <PodcastChapterList dialogue={dialogue} isPlaying={isPlaying} onSeek={handleSeek} />
     </div>
   );
 };
