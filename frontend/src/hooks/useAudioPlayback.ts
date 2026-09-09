@@ -97,3 +97,6 @@ export const useAudioPlayback = (audioUrl: string | null) => {
     formatTime: formatTimestamp,
   };
 };
+
+/** Shared by the player and the transcript, which both follow one element. */
+export type AudioPlayback = ReturnType<typeof useAudioPlayback>;

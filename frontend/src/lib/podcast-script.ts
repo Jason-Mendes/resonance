@@ -54,6 +54,45 @@ const resolveHost = (speaker: string, hosts: PodcastHost[], turnIndex: number): 
   return hosts[slot] ?? hosts[0];
 };
 
+/**
+ * Stretches estimated turn timings onto the real length of the rendered audio.
+ *
+ * The estimator assumes a fixed words-per-minute, and the synthesised voices do
+ * not hit it exactly. Measured on a rendered episode the estimate ran 9 percent
+ * fast, which by the sixth turn put every timestamp 9 seconds early: more than
+ * a turn's worth, so the transcript named the wrong speaker. Scaling by the
+ * ratio of real to estimated total removes that accumulated error.
+ */
+export const rescaleTurnTimings = (
+  dialogue: PodcastDialogueTurn[],
+  estimatedTotal: number,
+  actualTotal: number,
+): PodcastDialogueTurn[] => {
+  if (estimatedTotal <= 0 || actualTotal <= 0) return dialogue;
+
+  const scale = actualTotal / estimatedTotal;
+  return dialogue.map((turn) => {
+    const timeSeconds = Math.round(turn.timeSeconds * scale);
+    return { ...turn, timeSeconds, timestamp: formatTimestamp(timeSeconds) };
+  });
+};
+
+/**
+ * The turn being spoken at a given moment: the last one that has started.
+ * Returns null before the first turn, so nothing is highlighted at rest.
+ */
+export const findActiveTurnId = (
+  dialogue: PodcastDialogueTurn[],
+  currentSeconds: number,
+): string | null => {
+  let active: string | null = null;
+  for (const turn of dialogue) {
+    if (turn.timeSeconds > currentSeconds) break;
+    active = turn.id;
+  }
+  return active;
+};
+
 /** Adapts the backend's script into the turns the studio transcript renders. */
 export const toDialogueTurns = (
   script: BackendScriptTurn[],

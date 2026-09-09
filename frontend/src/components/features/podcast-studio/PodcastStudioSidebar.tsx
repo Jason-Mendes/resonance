@@ -6,6 +6,7 @@ import { PodcastStudioHeader } from "./PodcastStudioHeader";
 import { PodcastStudioTabContent } from "./PodcastStudioTabContent";
 
 import { Tabs, TabItem } from "@/components/ui/Tabs";
+import { useFollowAlongTranscript } from "@/hooks/useFollowAlongTranscript";
 import {
   PodcastEpisode,
   PodcastFormat,
@@ -46,6 +47,8 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
 }) => {
   const [activeTab, setActiveTab] = React.useState<string>("config");
 
+  const { playback, dialogue, activeTurnId } = useFollowAlongTranscript(episode);
+
   React.useEffect(() => {
     if (episode && genState === "completed") {
       setActiveTab("transcript");
@@ -63,12 +66,15 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
     <div className="space-y-4">
       <PodcastStudioHeader />
 
-      {episode && <PodcastPlayerCard episode={episode} />}
+      {episode && <PodcastPlayerCard episode={episode} playback={playback} />}
 
       <Tabs items={SIDEBAR_TABS} activeId={activeTab} onChange={setActiveTab} />
 
       <PodcastStudioTabContent
         activeTab={activeTab}
+        dialogue={dialogue}
+        activeTurnId={activeTurnId}
+        onSeekTo={playback.seekTo}
         selectedPairId={selectedPairId}
         onSelectPairId={onSelectPairId}
         selectedFormat={selectedFormat}
