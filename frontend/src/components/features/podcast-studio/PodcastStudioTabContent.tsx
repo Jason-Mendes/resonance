@@ -19,6 +19,7 @@ export interface PodcastStudioTabContentProps {
   onSelectFormat: (format: PodcastFormat) => void;
   genState: PodcastGenState;
   progress: number;
+  error: string | null;
   episode: PodcastEpisode | null;
   onGenerate: () => void;
   onUpdateDialogue?: (dialogue: PodcastDialogueTurn[]) => void;
@@ -32,6 +33,7 @@ export const PodcastStudioTabContent: React.FC<PodcastStudioTabContentProps> = (
   onSelectFormat,
   genState,
   progress,
+  error,
   episode,
   onGenerate,
   onUpdateDialogue,
@@ -45,6 +47,7 @@ export const PodcastStudioTabContent: React.FC<PodcastStudioTabContentProps> = (
         onSelectFormat={onSelectFormat}
         genState={genState}
         progress={progress}
+        error={error}
         onGenerate={onGenerate}
         hasEpisode={episode !== null}
       />
