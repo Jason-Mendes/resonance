@@ -14,11 +14,18 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import * as dotenv from "dotenv";
+
 import { getFirestore } from "../lib/firestore.js";
 import { mapNzzToArticle } from "../lib/nzz-article-adapter.js";
 import { ARTICLES_COLLECTION } from "../services/articles.js";
 
 import type { NzzRawArticle } from "../types/nzz.js";
+
+// The server reaches Firestore because importing the Gemini service loads the
+// env file on the way. Nothing here imports that service, so this script reads
+// backend/.env for itself.
+dotenv.config();
 
 const DEFAULT_EXPORT_DIR = "../Data/LiquidStoryEngine/input/articles";
 
