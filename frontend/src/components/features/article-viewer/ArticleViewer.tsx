@@ -16,18 +16,22 @@ export const ArticleViewer: React.FC<ArticleViewerProps> = ({ article }) => {
       <ArticleHeader article={article} />
       <ArticleBody sections={article.sections} />
 
-      <footer className="pt-6 mt-8 border-t border-zinc-100">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-mono uppercase tracking-wider text-zinc-400 mr-1">
-            Tags:
-          </span>
-          {article.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs font-normal">
-              #{tag}
-            </Badge>
-          ))}
-        </div>
-      </footer>
+      {/* An article an editor added carries no tags, and a "Tags:" label with
+          nothing after it reads as something that failed to load. */}
+      {article.tags.length > 0 && (
+        <footer className="pt-6 mt-8 border-t border-zinc-100">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-mono uppercase tracking-wider text-zinc-400 mr-1">
+              Tags:
+            </span>
+            {article.tags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="text-xs font-normal">
+                #{tag}
+              </Badge>
+            ))}
+          </div>
+        </footer>
+      )}
     </article>
   );
 };

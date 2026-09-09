@@ -10,6 +10,23 @@ export interface ArticleBylineProps {
   readTimeMinutes: number;
 }
 
+/**
+ * Articles carry an ISO timestamp, which is right for storing and sorting and
+ * unreadable in a byline. Falls back to the raw string rather than showing
+ * "Invalid Date" if a value ever arrives that is not a date.
+ */
+const formatPublished = (isoDate: string): string => {
+  const parsed = new Date(isoDate);
+  if (Number.isNaN(parsed.getTime())) return isoDate;
+
+  return parsed.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+};
+
 export const ArticleByline: React.FC<ArticleBylineProps> = ({
   author,
   publishedAt,
@@ -41,7 +58,7 @@ export const ArticleByline: React.FC<ArticleBylineProps> = ({
     <div className="flex items-center space-x-3 font-mono text-[11px]">
       <span className="flex items-center gap-1">
         <Calendar className="h-3 w-3 text-zinc-400" />
-        {publishedAt}
+        {formatPublished(publishedAt)}
       </span>
       <span className="flex items-center gap-1">
         <Clock className="h-3 w-3 text-zinc-400" />

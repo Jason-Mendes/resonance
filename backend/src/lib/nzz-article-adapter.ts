@@ -106,6 +106,16 @@ const resolveAuthorName = (raw: NzzRawArticle): string => {
   return "NZZ Editorial";
 };
 
+/**
+ * The section already begins with "NZZ" for some titles, such as "NZZ am
+ * Sonntag Magazin", and prefixing it again reads as "NZZ NZZ am Sonntag
+ * Magazin" under the byline.
+ */
+const resolveAuthorRole = (section: string | undefined): string => {
+  if (!section) return "NZZ Correspondent";
+  return section.startsWith("NZZ") ? section : `NZZ ${section}`;
+};
+
 const resolveReadMinutes = (raw: NzzRawArticle): number =>
   raw.reading_time_seconds
     ? Math.max(1, Math.round(raw.reading_time_seconds / SECONDS_PER_MINUTE))
@@ -144,7 +154,7 @@ export const mapNzzToArticle = (raw: NzzRawArticle): Article => ({
   kicker: raw.section ?? "Dispatch",
   author: {
     name: resolveAuthorName(raw),
-    role: raw.section ? `NZZ ${raw.section}` : "NZZ Correspondent",
+    role: resolveAuthorRole(raw.section),
   },
   publishedAt: raw.published_at,
   readTimeMinutes: resolveReadMinutes(raw),
