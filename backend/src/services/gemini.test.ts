@@ -6,18 +6,20 @@ import { generateFlexReadLayers, generatePodcastScript } from "./gemini.js";
  * The model call is mocked, so these check that our prompts and parsing hold
  * without spending quota or waiting on the network.
  *
- * vi.hoisted is what makes the mock reachable. vi.mock is lifted above the
- * imports, so a plain const declared here would not exist yet when the factory
- * runs. Reading the mock back off the mocked module instead would mean
- * importing a name @google/genai does not export, which type-checks as an
- * error even though the test passes.
+ * The mock replaces getVertexClient rather than the @google/genai SDK beneath
+ * it. Mocking the SDK leaves getVertexClient running, and it throws on a
+ * missing VERTEX_PROJECT before it ever constructs a client. That passed
+ * locally, where backend/.env supplies one, and failed in CI, where nothing
+ * does.
+ *
+ * vi.hoisted is what makes the mock reachable: vi.mock is lifted above the
+ * imports, so a plain const declared here would not exist when the factory
+ * runs.
  */
 const { generateContentMock } = vi.hoisted(() => ({ generateContentMock: vi.fn() }));
 
-vi.mock("@google/genai", () => ({
-  GoogleGenAI: class {
-    models = { generateContent: generateContentMock };
-  },
+vi.mock("../lib/vertex.js", () => ({
+  getVertexClient: () => ({ models: { generateContent: generateContentMock } }),
 }));
 
 describe("Gemini Service", () => {
