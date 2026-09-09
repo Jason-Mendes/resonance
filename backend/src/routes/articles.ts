@@ -1,7 +1,12 @@
 import { Router } from "express";
 
 import { parseArticleDraft } from "../lib/article-draft.js";
-import { createArticle, getArticleById, listArticleSummaries } from "../services/articles.js";
+import {
+  createArticle,
+  getArticleById,
+  listArticleSummaries,
+  updateArticle,
+} from "../services/articles.js";
 
 export const articlesRouter = Router();
 
@@ -38,6 +43,31 @@ articlesRouter.post("/", async (req, res) => {
     res.status(201).location(`/api/articles/${article.id}`).json(article);
   } catch (error) {
     console.error("Article create error:", error);
+    res.status(500).json({ error: "Could not save the article" });
+  }
+});
+
+articlesRouter.put("/:id", async (req, res) => {
+  const id = req.params.id;
+  if (!id || !ARTICLE_ID_PATTERN.test(id)) {
+    return res.status(400).json({ error: "That is not a valid article id" });
+  }
+
+  const parsed = parseArticleDraft(req.body);
+  if (!parsed.ok) {
+    return res.status(400).json({ error: parsed.error });
+  }
+
+  try {
+    const article = await updateArticle(id, parsed.draft);
+    if (!article) {
+      return res.status(404).json({ error: "Article not found" });
+    }
+    // The stored article, so the caller renders what was actually written
+    // rather than what it hoped would be, including the reparsed sections.
+    res.json(article);
+  } catch (error) {
+    console.error("Article update error:", error);
     res.status(500).json({ error: "Could not save the article" });
   }
 });

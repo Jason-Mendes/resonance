@@ -7,7 +7,7 @@
  */
 import { MAX_ARTICLE_CHARS } from "./articleText.js";
 
-import type { Article, ArticleSection } from "../types/article.js";
+import type { Article, ArticleHeroImage, ArticleSection } from "../types/article.js";
 
 const MAX_SHORT_FIELD_CHARS = 300;
 const WORDS_PER_MINUTE = 200;
@@ -138,4 +138,41 @@ function parseHeroImageUrl(value: unknown): string | null {
     // URL throws on anything it cannot parse, which is the answer we want.
     return null;
   }
+}
+
+/**
+ * The form collects a hero image URL and nothing else about it, so rebuilding
+ * from a draft alone would replace a photographer's caption with the headline.
+ * An unchanged URL therefore keeps the caption and credit it arrived with.
+ */
+function resolveHeroImage(existing: Article, rebuilt: Article): ArticleHeroImage | undefined {
+  if (!rebuilt.heroImage) return undefined;
+  return existing.heroImage?.url === rebuilt.heroImage.url ? existing.heroImage : rebuilt.heroImage;
+}
+
+/**
+ * Rebuilds a stored article around an edited draft.
+ *
+ * The editor owns the words: headline, standfirst, section, byline name and
+ * body. Everything else is the server's and is carried over, because the form
+ * never collected it and a rebuild from the draft alone would blank it. The
+ * body is reparsed, so image and infobox sections an editor cannot express in
+ * plain text do not survive the round trip.
+ */
+export function applyDraftToArticle(existing: Article, draft: ArticleDraft): Article {
+  const rebuilt = draftToArticle(draft, existing.id);
+  const heroImage = resolveHeroImage(existing, rebuilt);
+
+  return {
+    ...rebuilt,
+    // When it was published, what it is filed under and where it came from are
+    // facts about the original, unchanged by anyone correcting a sentence.
+    publishedAt: existing.publishedAt,
+    tags: existing.tags,
+    author: { ...rebuilt.author, role: existing.author.role },
+    ...(existing.sourceUrl ? { sourceUrl: existing.sourceUrl } : {}),
+    ...(heroImage ? { heroImage } : {}),
+    // NZZ writes these; no field in the form collects them.
+    ...(existing.summaryBullets ? { summaryBullets: existing.summaryBullets } : {}),
+  };
 }
