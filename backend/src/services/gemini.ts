@@ -1,19 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
 import * as dotenv from "dotenv";
 
+import { getVertexClient } from "../lib/vertex.js";
+
 dotenv.config();
-
-// Fail at startup rather than on the first request. Without this the server
-// boots healthy and every article request returns an opaque auth error.
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error(
-    "GEMINI_API_KEY is not set. Add it to backend/.env or the deployment environment.",
-  );
-}
-
-// Initialize the Gemini client
-export const genAI = new GoogleGenAI({ apiKey });
 
 // The model we want to use for heavy text reasoning
 const TEXT_MODEL = "gemini-2.5-flash";
@@ -38,7 +27,7 @@ export async function generateFlexReadLayers(articleText: string) {
     ${articleText}
   `;
 
-  const response = await genAI.models.generateContent({
+  const response = await getVertexClient().models.generateContent({
     model: TEXT_MODEL,
     contents: prompt,
     config: {
@@ -54,11 +43,22 @@ export async function generateFlexReadLayers(articleText: string) {
  */
 export async function generatePodcastScript(articleText: string) {
   const prompt = `
-    Act as a professional podcast producer. Based on the provided article, write a 3-4 minute, natural, conversational dialogue between two hosts: 
+    Act as a professional podcast producer. Based on the provided article, write a 3-4 minute dialogue between two hosts:
     - "HostA": Analytical, expert, provides context.
     - "HostB": Curious, casual, asks the right questions.
-    
-    Make it sound like a real discussion, with banter and smooth transitions. No rigid jargon.
+
+    This is read aloud by a broadcast text-to-speech voice, which delivers
+    prepared copy well and cannot act. Write measured, complete sentences, the
+    way a documentary narrator or a radio feature is written.
+
+    - Every turn is a complete thought in full sentences. No fragments.
+    - No one-word or two-word reactions. A voice cannot deliver "Wait, really?"
+      convincingly, and a flat exclamation sounds worse than a flat statement.
+    - No interruptions or trailing off. The voice has no prosody to sell them.
+    - Use contractions where they read naturally: "it's", "that's", "they're".
+    - No bullet points, headings, lists or markdown. Nobody speaks a bullet point.
+    - Spell out numbers and symbols as a person would say them: "about forty per cent", not "~40%".
+    - No stage directions, no "[laughs]", no speaker names inside the text.
     
     Return the response as a valid JSON array of objects, where each object has:
     {
@@ -71,7 +71,7 @@ export async function generatePodcastScript(articleText: string) {
     ${articleText}
   `;
 
-  const response = await genAI.models.generateContent({
+  const response = await getVertexClient().models.generateContent({
     model: TEXT_MODEL,
     contents: prompt,
     config: {
