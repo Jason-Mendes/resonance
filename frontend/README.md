@@ -20,6 +20,22 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Deploying
+
+```bash
+gcloud run deploy resonance-frontend \
+  --project nzz-sbx-hckthn08 --region us-central1 --source . \
+  --allow-unauthenticated \
+  --set-env-vars "BACKEND_URL=<backend url>"
+```
+
+`BACKEND_URL` is read server-side on every request, not inlined at build time,
+so the same image works against any backend and the value can change on a
+running service. That is why it is not a `NEXT_PUBLIC_` variable.
+
+Deploy the backend first: this needs its URL, and the backend does not need
+this one.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
