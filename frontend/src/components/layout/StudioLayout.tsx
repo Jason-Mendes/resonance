@@ -24,7 +24,11 @@ export const StudioLayout: React.FC<StudioLayoutProps> = ({
         </main>
 
         {/* Right Column: Audio Dialogue Generation */}
-        <aside className="lg:col-span-5 xl:col-span-5 min-w-0 sticky top-20">
+        {/* Pinned and independently scrollable: the studio is a control panel
+            for the article beside it, so it must stay usable while the reader
+            scrolls the story. The height bound is what makes it scroll rather
+            than overflow past the viewport. */}
+        <aside className="lg:col-span-5 xl:col-span-5 min-w-0 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
           <div className="bg-white rounded-none border border-zinc-200 p-5">{childrenRight}</div>
         </aside>
       </div>
