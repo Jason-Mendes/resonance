@@ -1,25 +1,18 @@
 import * as React from "react";
 
-import { PodcastChapterList } from "./PodcastChapterList";
 import { PodcastPlayerControls } from "./PodcastPlayerControls";
 import { PodcastPlayerHeader } from "./PodcastPlayerHeader";
 import { PodcastWaveform } from "./PodcastWaveform";
 
 import { AudioPlayback } from "@/hooks/useAudioPlayback";
-import { PodcastDialogueTurn, PodcastEpisode } from "@/types/podcast";
+import { PodcastEpisode } from "@/types/podcast";
 
 export interface PodcastPlayerCardProps {
   episode: PodcastEpisode;
-  /** Turns with timings already stretched onto the real audio length. */
-  dialogue: PodcastDialogueTurn[];
   playback: AudioPlayback;
 }
 
-export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({
-  episode,
-  dialogue,
-  playback,
-}) => {
+export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({ episode, playback }) => {
   const {
     audioRef,
     isPlaying,
@@ -68,8 +61,6 @@ export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({
           onCycleSpeed={cycleSpeed}
         />
       </div>
-
-      <PodcastChapterList dialogue={dialogue} isPlaying={isPlaying} onSeek={handleSeek} />
     </div>
   );
 };

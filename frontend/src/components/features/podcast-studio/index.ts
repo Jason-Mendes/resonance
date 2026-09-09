@@ -4,7 +4,6 @@ export * from "./PodcastPlayerCard";
 export * from "./PodcastPlayerHeader";
 export * from "./PodcastPlayerControls";
 export * from "./PodcastWaveform";
-export * from "./PodcastChapterList";
 export * from "./PodcastTranscriptView";
 export * from "./PodcastTranscriptToolbar";
 export * from "./PodcastShowNotes";
