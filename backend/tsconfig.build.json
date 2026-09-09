@@ -1,0 +1,13 @@
+{
+  // Build only. Tests are still type-checked, because `tsc --noEmit` uses the
+  // base config and sees everything; this config exists so they do not end up
+  // in dist/, which is what ships. Without it the image carries the test files
+  // and their vitest imports.
+  "extends": "./tsconfig.json",
+
+  // node_modules and dist are listed explicitly because naming `exclude` at
+  // all replaces tsc's defaults, which already covered both. Omitting dist
+  // makes tsc read its own previous .d.ts output back as input and refuse to
+  // overwrite it.
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
+}
