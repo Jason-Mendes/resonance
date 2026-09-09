@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { articleToText } from "@/lib/article-text";
 import { fetchArticle } from "@/lib/articles";
 import { BackendError, postToBackend } from "@/lib/backend";
+import { pickControls } from "@/lib/generation-controls";
 
 /**
  * Starts a briefing render: article in, roughly sixty seconds of single-voice
@@ -31,6 +32,7 @@ export async function POST(request: Request) {
 
     const job = await postToBackend<JobAccepted>("/api/briefing", {
       articleText: articleToText(article),
+      ...pickControls(body),
     });
     return NextResponse.json(job, { status: 202 });
   } catch (error) {

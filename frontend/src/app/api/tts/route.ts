@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { BackendError, postToBackend } from "@/lib/backend";
+import { pickControls } from "@/lib/generation-controls";
 
 /**
  * Starts a text-to-speech job. Unlike the script route this forwards a script
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const job = await postToBackend<JobAccepted>("/api/tts", { script });
+    const job = await postToBackend<JobAccepted>("/api/tts", { script, ...pickControls(body) });
     return NextResponse.json(job, { status: 202 });
   } catch (error) {
     if (error instanceof BackendError) {

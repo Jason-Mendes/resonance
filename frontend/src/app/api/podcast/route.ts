@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { articleToText } from "@/lib/article-text";
 import { fetchArticle } from "@/lib/articles";
 import { BackendError, postToBackend } from "@/lib/backend";
+import { pickControls } from "@/lib/generation-controls";
 
 /**
  * Proxies script generation to the Express backend. The browser posts an
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
 
     const { script } = await postToBackend<BackendScript>("/api/podcast", {
       articleText: articleToText(article),
+      ...pickControls(body),
     });
     return NextResponse.json({ script });
   } catch (error) {
