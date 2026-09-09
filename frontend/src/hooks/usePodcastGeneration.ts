@@ -17,86 +17,111 @@ import {
 } from "@/types/podcast";
 
 const GENERATION_START_PROGRESS = 15;
+/** Everything the studio shows for one format. */
+interface FormatSlot {
+  episode: PodcastEpisode | null;
+  genState: PodcastGenState;
+  progress: number;
+  error: string | null;
+}
+
+const EMPTY_SLOT: FormatSlot = {
+  episode: null,
+  genState: "idle",
+  progress: 0,
+  error: null,
+};
+
+/**
+ * One slot per format, so generating a summary no longer discards a podcast.
+ * A Record over the format union rather than two fields, so adding a format
+ * fails to compile until it has a slot.
+ */
+const EMPTY_SLOTS: Record<PodcastFormat, FormatSlot> = {
+  podcast: EMPTY_SLOT,
+  summary: EMPTY_SLOT,
+};
+
 /** The episode's lifecycle state, cleared whenever the article changes. */
-const useEpisodeState = (article: Article | null) => {
-  const [genState, setGenState] = useState<PodcastGenState>("idle");
-  const [progress, setProgress] = useState<number>(0);
-  const [episode, setEpisode] = useState<PodcastEpisode | null>(null);
-  const [error, setError] = useState<string | null>(null);
+const useEpisodeState = (article: Article | null, format: PodcastFormat) => {
+  const [slots, setSlots] = useState<Record<PodcastFormat, FormatSlot>>(EMPTY_SLOTS);
 
   // Showing one article's script beside another article's text is worse than
-  // showing none, so a change of article clears everything.
+  // showing none, so a change of article clears both formats.
   useEffect(() => {
-    setEpisode(null);
-    setGenState("idle");
-    setProgress(0);
-    setError(null);
+    setSlots(EMPTY_SLOTS);
   }, [article]);
 
-  return {
-    genState,
-    setGenState,
-    progress,
-    setProgress,
-    episode,
-    setEpisode,
-    error,
-    setError,
-  };
+  /** Patches only the selected format, leaving the other one untouched. */
+  const patch = useCallback(
+    (change: Partial<FormatSlot>) => {
+      setSlots((prev) => ({ ...prev, [format]: { ...prev[format], ...change } }));
+    },
+    [format],
+  );
+
+  /** Updates the selected format's episode from its own previous value. */
+  const patchEpisode = useCallback(
+    (next: (prev: PodcastEpisode | null) => PodcastEpisode | null) => {
+      setSlots((prev) => ({
+        ...prev,
+        [format]: { ...prev[format], episode: next(prev[format].episode) },
+      }));
+    },
+    [format],
+  );
+
+  return { slot: slots[format], patch, patchEpisode };
 };
 
 export const usePodcastGeneration = (article: Article | null) => {
   const [selectedPairId, setSelectedPairId] = useState<string>(HOST_PAIR_PRESETS[0].id);
   const [selectedFormat, setSelectedFormat] = useState<PodcastFormat>("podcast");
-  const { genState, setGenState, progress, setProgress, episode, setEpisode, error, setError } =
-    useEpisodeState(article);
+  const { slot, patch, patchEpisode } = useEpisodeState(article, selectedFormat);
 
   const generatePodcast = useCallback(async () => {
     if (!article) return;
 
-    setGenState("generating");
-    setError(null);
-    setProgress(GENERATION_START_PROGRESS);
+    patch({ genState: "generating", error: null, progress: GENERATION_START_PROGRESS });
 
     try {
-      const onReady = (built: PodcastEpisode) => {
-        setEpisode(built);
-        setProgress(SCRIPT_DONE_PROGRESS);
-      };
-
       const request: ProductionRequest = {
         article,
         pairId: selectedPairId,
         format: selectedFormat,
-        onReady,
-        onRenderProgress: (fraction) => setProgress(renderProgressToBar(fraction)),
+        onReady: (built) => patch({ episode: built, progress: SCRIPT_DONE_PROGRESS }),
+        onRenderProgress: (fraction) => patch({ progress: renderProgressToBar(fraction) }),
       };
 
       const produced = await runProduction(request);
 
-      setEpisode(applyProduction(produced));
-      setProgress(100);
-      setGenState("completed");
+      patchEpisode(applyProduction(produced));
+      patch({ progress: 100, genState: "completed" });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not generate the script");
-      setProgress(0);
-      setGenState("error");
+      patch({
+        error: caught instanceof Error ? caught.message : "Could not generate the script",
+        progress: 0,
+        genState: "error",
+      });
     }
-  }, [article, selectedPairId, selectedFormat]);
+  }, [article, selectedPairId, selectedFormat, patch, patchEpisode]);
 
-  const updateDialogue = useCallback((dialogue: PodcastDialogueTurn[]) => {
-    setEpisode((prev) => (prev ? { ...prev, dialogue } : null));
-  }, []);
+  const updateDialogue = useCallback(
+    (dialogue: PodcastDialogueTurn[]) => {
+      patchEpisode((prev) => (prev ? { ...prev, dialogue } : null));
+    },
+    [patchEpisode],
+  );
 
   return {
     selectedPairId,
     setSelectedPairId,
     selectedFormat,
     setSelectedFormat,
-    genState,
-    progress,
-    episode,
-    error,
+    genState: slot.genState,
+    progress: slot.progress,
+    episode: slot.episode,
+    error: slot.error,
     generatePodcast,
     updateDialogue,
   };
