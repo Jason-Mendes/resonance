@@ -1,0 +1,14 @@
+# The build context is uploaded to Cloud Build, so keep it small and keep
+# local state out of image layers.
+node_modules
+.next
+.next-verify
+
+# .env.local holds BACKEND_URL for local development. Cloud Run sets its own,
+# and a copied file would take precedence over it.
+.env
+.env.*
+!.env.local.example
+
+.git
+*.log

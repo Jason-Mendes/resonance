@@ -1,0 +1,18 @@
+# The build context is uploaded to Cloud Build, so anything here is both
+# slower to send and a chance to leak something into an image layer.
+node_modules
+dist
+.next-verify
+
+# Credentials and local machine state. .env carries VERTEX_PROJECT and would
+# otherwise override the values Cloud Run sets.
+.env
+.env.*
+!.env.example
+
+# Tests are excluded from the build by tsconfig.build.json, but they do not
+# need uploading either.
+**/*.test.ts
+
+.git
+*.log
