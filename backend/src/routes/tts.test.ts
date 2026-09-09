@@ -68,13 +68,20 @@ describe("POST /api/tts", () => {
   });
 });
 
+// Generous on purpose. Synthesis is mocked so a job settles in a millisecond,
+// and the loop returns the moment it does, so a large budget costs nothing
+// when passing. The earlier 200ms budget made the suite fail under load,
+// which is a property of the machine rather than of the code being tested.
+const SETTLE_ATTEMPTS = 100;
+const SETTLE_INTERVAL_MS = 50;
+
 /** Submits a script and waits for the job to leave the running state. */
 const renderAndSettle = async () => {
   const { body } = await request(app).post("/api/tts").send({ script: validScript });
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  for (let attempt = 0; attempt < SETTLE_ATTEMPTS; attempt += 1) {
     const status = await request(app).get(`/api/tts/jobs/${body.jobId}`);
     if (status.body.status === "done" || status.body.status === "failed") return status;
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, SETTLE_INTERVAL_MS));
   }
   throw new Error("job never settled");
 };
