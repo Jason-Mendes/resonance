@@ -21,14 +21,6 @@ export interface PodcastDialogueTurn {
   text: string;
 }
 
-export interface PodcastChapter {
-  id: string;
-  time: number;
-  formattedTime: string;
-  title: string;
-  summary: string;
-}
-
 export interface PodcastEpisode {
   id: string;
   articleId: string;
@@ -38,11 +30,9 @@ export interface PodcastEpisode {
   hosts: PodcastHost[];
   format: PodcastFormat;
   durationSeconds: number;
-  formattedDuration: string;
   waveform: number[];
   /** Null until the render finishes; the player shows a pending state. */
   audioUrl: string | null;
-  chapters: PodcastChapter[];
   dialogue: PodcastDialogueTurn[];
   showNotes: string;
   keyTakeaways: string[];

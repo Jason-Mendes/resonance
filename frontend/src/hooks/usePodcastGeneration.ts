@@ -1,11 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 
 import { HOST_PAIR_PRESETS } from "@/constants/sample-podcast-hosts";
-import { BackendScriptTurn, formatTimestamp, toDialogueTurns } from "@/lib/podcast-script";
+import { BackendScriptTurn, toDialogueTurns } from "@/lib/podcast-script";
 import { extractWaveform } from "@/lib/waveform";
 import { Article } from "@/types/article";
 import {
-  PodcastChapter,
   PodcastEpisode,
   PodcastFormat,
   PodcastGenState,
@@ -15,19 +14,6 @@ import {
 const GENERATION_START_PROGRESS = 15;
 const TITLE_MAX_CHARS = 48;
 const TRAILING_TURN_SECONDS = 20;
-const CHAPTER_SUMMARY_CHARS = 90;
-
-/** One chapter per turn is noise, so chapters mark each change of speaker. */
-const buildChapters = (dialogue: PodcastDialogueTurn[]): PodcastChapter[] =>
-  dialogue
-    .filter((turn, index) => index === 0 || turn.speaker !== dialogue[index - 1].speaker)
-    .map((turn) => ({
-      id: `chapter-${turn.id}`,
-      time: turn.timeSeconds,
-      formattedTime: turn.timestamp,
-      title: turn.speaker,
-      summary: turn.text.slice(0, CHAPTER_SUMMARY_CHARS),
-    }));
 
 const buildEpisode = (
   article: Article,
@@ -51,11 +37,9 @@ const buildEpisode = (
     hosts: preset.hosts,
     format,
     durationSeconds,
-    formattedDuration: formatTimestamp(durationSeconds),
     // Both filled in once the render completes.
     waveform: [],
     audioUrl: null,
-    chapters: buildChapters(dialogue),
     dialogue,
     showNotes: article.subtitle,
     keyTakeaways: article.summaryBullets ?? [],
