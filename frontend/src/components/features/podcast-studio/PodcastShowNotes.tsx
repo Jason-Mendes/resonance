@@ -5,41 +5,24 @@ import { PodcastShowNotesActions } from "./PodcastShowNotesActions";
 
 import { PodcastEpisode } from "@/types/podcast";
 
-const COPIED_RESET_MS = 2000;
-const EXPORT_DELAY_MS = 800;
-
 export interface PodcastShowNotesProps {
   episode: PodcastEpisode;
 }
 
-export const PodcastShowNotes: React.FC<PodcastShowNotesProps> = ({ episode }) => {
-  const [copiedFeed, setCopiedFeed] = React.useState(false);
-  const [isDownloading, setIsDownloading] = React.useState(false);
+/** Turns a title into something safe to write to a filesystem. */
+const toFileName = (title: string, format: string): string =>
+  `${title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")}.${format}`;
 
-  const handleCopyFeed = () => {
-    navigator.clipboard.writeText(`https://resonance.media/podcasts/episodes/${episode.id}.xml`);
-    setCopiedFeed(true);
-    setTimeout(() => setCopiedFeed(false), COPIED_RESET_MS);
-  };
+export const PodcastShowNotes: React.FC<PodcastShowNotesProps> = ({ episode }) => (
+  <div className="space-y-3">
+    <PodcastNotesCard episode={episode} />
 
-  const handleDownload = () => {
-    setIsDownloading(true);
-    setTimeout(() => {
-      setIsDownloading(false);
-      alert(`Audio file "${episode.title}.mp3" downloaded.`);
-    }, EXPORT_DELAY_MS);
-  };
-
-  return (
-    <div className="space-y-3">
-      <PodcastNotesCard episode={episode} />
-
-      <PodcastShowNotesActions
-        copiedFeed={copiedFeed}
-        isDownloading={isDownloading}
-        onCopyFeed={handleCopyFeed}
-        onDownload={handleDownload}
-      />
-    </div>
-  );
-};
+    <PodcastShowNotesActions
+      audioUrl={episode.audioUrl}
+      fileName={toFileName(episode.title, episode.format === "summary" ? "mp3" : "wav")}
+    />
+  </div>
+);
