@@ -14,6 +14,8 @@ export interface Job<TResult> {
   status: JobStatus;
   createdAt: string;
   updatedAt: string;
+  /** 0 to 1, reported by the work itself. Absent when it cannot measure. */
+  progress?: number;
   /** Populated only when status is 'done'. */
   result?: TResult;
   /** Populated only when status is 'failed'. Safe to show a caller. */
@@ -42,13 +44,28 @@ function update<TResult>(id: string, patch: Partial<Job<TResult>>): void {
   Object.assign(job, patch, { updatedAt: new Date().toISOString() });
 }
 
+/** Handed to the work so it can report how far along it is. */
+export type ProgressReporter = (fraction: number) => void;
+
 /**
  * Runs `work` in the background and records the outcome against the job.
  * Returns immediately: the caller responds with the job id, not the result.
+ *
+ * `work` receives a reporter. Work that can measure itself should call it, so
+ * a caller polling the job sees movement rather than a status that sits on
+ * "running" for a minute and then jumps to done.
  */
-export function runJob<TResult>(job: Job<TResult>, work: () => Promise<TResult>): void {
-  update<TResult>(job.id, { status: "running" });
-  void work()
+export function runJob<TResult>(
+  job: Job<TResult>,
+  work: (reportProgress: ProgressReporter) => Promise<TResult>,
+): void {
+  update<TResult>(job.id, { status: "running", progress: 0 });
+
+  const reportProgress: ProgressReporter = (fraction) => {
+    update<TResult>(job.id, { progress: Math.min(1, Math.max(0, fraction)) });
+  };
+
+  void work(reportProgress)
     .then((result) => update<TResult>(job.id, { status: "done", result }))
     .catch((error: unknown) => {
       // Full detail server-side; the stored message is what a caller may see.

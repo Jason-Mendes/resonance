@@ -46,7 +46,7 @@ ttsRouter.post("/", (req, res) => {
   }
 
   const job = createJob<RenderedAudio>();
-  runJob(job, () => synthesizeDialogue(parsed.script));
+  runJob(job, (reportProgress) => synthesizeDialogue(parsed.script, reportProgress));
 
   // 202: accepted, not finished. Location points at the status endpoint.
   res.status(202).location(`/api/tts/jobs/${job.id}`).json({ jobId: job.id, status: job.status });
@@ -64,6 +64,7 @@ ttsRouter.get("/jobs/:jobId", (req, res) => {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     ...(job.error ? { error: job.error } : {}),
+    ...(job.progress !== undefined ? { progress: job.progress } : {}),
     ...(job.status === "done" ? { audioUrl: `/api/tts/jobs/${job.id}/audio` } : {}),
   });
 });
