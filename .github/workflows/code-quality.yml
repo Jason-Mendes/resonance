@@ -74,6 +74,25 @@ jobs:
           npm ci
           npx tsc --noEmit
 
+      # Runs after the type check, which has already installed backend deps.
+      # Skips rather than fails when there are no tests, matching the step
+      # above, so this cannot break a checkout that lands files gradually.
+      - name: Backend tests
+        run: |
+          if [ ! -f backend/package.json ]; then
+            echo "no backend/package.json, skipping"
+            exit 0
+          fi
+          # find, not a ** glob: globstar is off in CI's bash, where ** behaves
+          # as a single *, so a glob would only see tests exactly one directory
+          # below src and would skip silently once any sit deeper.
+          if [ -z "$(find backend/src -name '*.test.ts' 2>/dev/null)" ]; then
+            echo "no backend tests, skipping"
+            exit 0
+          fi
+          cd backend
+          npm test
+
       # Guards against a dependency tree being committed. .gitignore covers
       # node_modules, but a forced add or a stale index would slip past it.
       - name: Reject committed dependencies
