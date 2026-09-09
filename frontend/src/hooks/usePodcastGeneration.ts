@@ -1,8 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 
 import { HOST_PAIR_PRESETS } from "@/constants/sample-podcast-hosts";
-import { BackendScriptTurn, toDialogueTurns } from "@/lib/podcast-script";
-import { extractWaveform } from "@/lib/waveform";
+import { SCRIPT_DONE_PROGRESS } from "@/lib/podcast-api";
+import {
+  applyProduction,
+  renderProgressToBar,
+  runProduction,
+  type ProductionRequest,
+} from "@/lib/podcast-production";
 import { Article } from "@/types/article";
 import {
   PodcastEpisode,
@@ -12,172 +17,6 @@ import {
 } from "@/types/podcast";
 
 const GENERATION_START_PROGRESS = 15;
-const TITLE_MAX_CHARS = 48;
-const TRAILING_TURN_SECONDS = 20;
-
-const buildEpisode = (
-  article: Article,
-  script: BackendScriptTurn[],
-  pairId: string,
-  format: PodcastFormat,
-): PodcastEpisode => {
-  const preset = HOST_PAIR_PRESETS.find((p) => p.id === pairId) ?? HOST_PAIR_PRESETS[0];
-  const dialogue = toDialogueTurns(script, preset.hosts);
-  const lastTurn = dialogue[dialogue.length - 1];
-  // Derived from the script's own estimated timings rather than a fixed number,
-  // so the duration shown moves with the content.
-  const durationSeconds = lastTurn ? lastTurn.timeSeconds + TRAILING_TURN_SECONDS : 0;
-
-  return {
-    id: `pod-${article.id}`,
-    articleId: article.id,
-    showName: "Analysis",
-    title: article.title.slice(0, TITLE_MAX_CHARS),
-    subtitle: article.subtitle,
-    hosts: preset.hosts,
-    format,
-    durationSeconds,
-    // Both filled in once the render completes.
-    waveform: [],
-    audioUrl: null,
-    dialogue,
-    showNotes: article.subtitle,
-    keyTakeaways: article.summaryBullets ?? [],
-  };
-};
-
-const fetchScript = async (articleId: string): Promise<BackendScriptTurn[]> => {
-  const response = await fetch("/api/podcast", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ articleId }),
-  });
-
-  const payload: unknown = await response.json().catch(() => null);
-  if (!response.ok) {
-    const message = (payload as { error?: unknown })?.error;
-    throw new Error(typeof message === "string" ? message : "Could not generate the script");
-  }
-
-  return ((payload as { script?: BackendScriptTurn[] })?.script ?? []).filter(
-    (turn) => typeof turn?.text === "string" && turn.text.trim() !== "",
-  );
-};
-
-// A dialogue render takes upwards of a minute, so a slower poll costs nothing
-// in perceived latency and keeps the request count low.
-const POLL_INTERVAL_MS = 3_000;
-const POLL_TIMEOUT_MS = 5 * 60 * 1000;
-const SCRIPT_DONE_PROGRESS = 55;
-
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-interface JobStatus {
-  status: "pending" | "running" | "done" | "failed";
-  error?: string;
-}
-
-/**
- * Starts a briefing and waits for it. Unlike the podcast this is one job: the
- * summary is written and narrated inside it, so the words come back with the
- * audio rather than being fetched separately, which would run the model again
- * and produce text the voice never said.
- */
-const renderSummary = async (articleId: string): Promise<{ audioUrl: string; text: string }> => {
-  const start = await fetch("/api/briefing", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ articleId }),
-  });
-
-  const accepted: unknown = await start.json().catch(() => null);
-  const jobId = (accepted as { jobId?: unknown })?.jobId;
-  if (!start.ok || typeof jobId !== "string") {
-    const message = (accepted as { error?: unknown })?.error;
-    throw new Error(typeof message === "string" ? message : "Could not start the summary");
-  }
-
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    await wait(POLL_INTERVAL_MS);
-    const poll = await fetch(`/api/briefing/jobs/${jobId}`);
-    const job = (await poll.json().catch(() => null)) as (JobStatus & { text?: string }) | null;
-
-    if (job?.status === "done") {
-      return { audioUrl: `/api/briefing/jobs/${jobId}/audio`, text: job.text ?? "" };
-    }
-    if (job?.status === "failed") throw new Error(job.error ?? "The summary failed");
-  }
-
-  throw new Error("The summary timed out");
-};
-
-/** Starts a render and resolves with the audio URL once the job reports done. */
-const renderAudio = async (script: BackendScriptTurn[]): Promise<string> => {
-  const start = await fetch("/api/tts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ script }),
-  });
-
-  const accepted: unknown = await start.json().catch(() => null);
-  const jobId = (accepted as { jobId?: unknown })?.jobId;
-  if (!start.ok || typeof jobId !== "string") {
-    const message = (accepted as { error?: unknown })?.error;
-    throw new Error(typeof message === "string" ? message : "Could not start the audio render");
-  }
-
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    await wait(POLL_INTERVAL_MS);
-    const poll = await fetch(`/api/tts/jobs/${jobId}`);
-    const job = (await poll.json().catch(() => null)) as JobStatus | null;
-
-    if (job?.status === "done") return `/api/tts/jobs/${jobId}/audio`;
-    if (job?.status === "failed") throw new Error(job.error ?? "The audio render failed");
-  }
-
-  throw new Error("The audio render timed out");
-};
-
-/**
- * A summary is one job that writes and narrates in a single step, so unlike a
- * podcast there is no intermediate script to publish partway through. The
- * narration becomes a single turn, which is what the transcript renders.
- */
-const produceSummary = async (
-  article: Article,
-  pairId: string,
-  onReady: (episode: PodcastEpisode) => void,
-): Promise<{ audioUrl: string; waveform: number[] }> => {
-  const { audioUrl, text } = await renderSummary(article.id);
-  onReady(buildEpisode(article, [{ speaker: "HostA", text }], pairId, "summary"));
-
-  const waveform = await extractWaveform(audioUrl).catch(() => []);
-  return { audioUrl, waveform };
-};
-
-/** Script, then audio, then the waveform read off that audio. */
-const produceEpisode = async (
-  article: Article,
-  pairId: string,
-  format: PodcastFormat,
-  onScriptReady: (episode: PodcastEpisode) => void,
-): Promise<{ audioUrl: string; waveform: number[] }> => {
-  const script = await fetchScript(article.id);
-  if (script.length === 0) {
-    throw new Error("The generated script came back empty");
-  }
-
-  // The transcript is published as soon as it exists, so it is readable while
-  // the voices are still being synthesised rather than only afterwards.
-  onScriptReady(buildEpisode(article, script, pairId, format));
-
-  const audioUrl = await renderAudio(script);
-  const waveform = await extractWaveform(audioUrl).catch(() => []);
-  return { audioUrl, waveform };
-};
-
 /** The episode's lifecycle state, cleared whenever the article changes. */
 const useEpisodeState = (article: Article | null) => {
   const [genState, setGenState] = useState<PodcastGenState>("idle");
@@ -225,14 +64,17 @@ export const usePodcastGeneration = (article: Article | null) => {
         setProgress(SCRIPT_DONE_PROGRESS);
       };
 
-      const { audioUrl, waveform } =
-        selectedFormat === "summary"
-          ? await produceSummary(article, selectedPairId, onReady)
-          : await produceEpisode(article, selectedPairId, selectedFormat, onReady);
+      const request: ProductionRequest = {
+        article,
+        pairId: selectedPairId,
+        format: selectedFormat,
+        onReady,
+        onRenderProgress: (fraction) => setProgress(renderProgressToBar(fraction)),
+      };
 
-      // Spread onto the previous state so transcript edits made while the audio
-      // was rendering survive.
-      setEpisode((prev) => (prev ? { ...prev, audioUrl, waveform } : prev));
+      const produced = await runProduction(request);
+
+      setEpisode(applyProduction(produced));
       setProgress(100);
       setGenState("completed");
     } catch (caught) {

@@ -25,9 +25,11 @@ export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({ episode, p
     formatTime,
   } = playback;
 
-  // The rendered file's own length once known, falling back to the script
-  // estimate while metadata is still loading.
-  const trackSeconds = duration || episode.durationSeconds;
+  // The rendered file's own length. Zero until its metadata loads, and the
+  // word-count estimate is deliberately not used as a stand-in: it showed a
+  // duration for audio that did not exist, then jumped when the real one
+  // arrived.
+  const trackSeconds = duration;
   const isReady = episode.audioUrl !== null;
 
   const handleSeek = (secs: number) => seekTo(secs);
@@ -49,7 +51,7 @@ export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({ episode, p
       <div className="space-y-1.5">
         <div className="flex justify-between text-[11px] font-mono text-zinc-400">
           <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(trackSeconds)}</span>
+          <span>{trackSeconds > 0 ? formatTime(trackSeconds) : "--:--"}</span>
         </div>
 
         <PodcastPlayerControls
