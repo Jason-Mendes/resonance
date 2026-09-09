@@ -167,6 +167,9 @@ describe("POST /api/tts host pairing", () => {
     expect(synthesizeDialogueMock).toHaveBeenCalledWith(
       validScript,
       { HostA: "Algieba", HostB: "Aoede" },
+      // Omitting tone must reach the voices with the exact sentence that used
+      // to be hardcoded, or an existing caller's audio changes under them.
+      "Read this as a natural two-host news podcast. Conversational and engaged, at the pace of real radio.",
       expect.any(Function),
     );
   });
@@ -193,5 +196,36 @@ describe("POST /api/tts host pairing", () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toContain("hosts must be one of");
     expect(synthesizeDialogueMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/tts avoided terms", () => {
+  it("refuses to synthesise a turn a producer edited a banned name back into", async () => {
+    const edited = [
+      { speaker: "HostA", text: "Roche halted the trial." },
+      { speaker: "HostB", text: "That is a significant reversal." },
+    ];
+
+    const res = await request(app)
+      .post("/api/tts")
+      .send({ script: edited, avoid: ["Roche"] });
+
+    expect(res.status).toBe(422);
+    expect(res.body.terms).toEqual(["Roche"]);
+    expect(synthesizeDialogueMock).not.toHaveBeenCalled();
+  });
+
+  it("renders normally when the edited script keeps the rule", async () => {
+    const clean = [
+      { speaker: "HostA", text: "The manufacturer halted the trial." },
+      { speaker: "HostB", text: "That is a significant reversal." },
+    ];
+
+    const res = await request(app)
+      .post("/api/tts")
+      .send({ script: clean, avoid: ["Roche"] });
+
+    expect(res.status).toBe(202);
+    expect(synthesizeDialogueMock).toHaveBeenCalledTimes(1);
   });
 });

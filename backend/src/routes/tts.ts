@@ -1,5 +1,10 @@
 import { Router } from "express";
 
+import {
+  findForbiddenTerms,
+  parseGenerationControls,
+  toDeliveryInstruction,
+} from "../lib/generation-controls.js";
 import { createJob, getJob, runJob } from "../lib/jobs.js";
 import { synthesizeDialogue, type RenderedAudio, type ScriptTurn } from "../services/tts.js";
 import {
@@ -62,6 +67,12 @@ function parseHosts(
   return { ok: true, pairing: hosts };
 }
 
+/**
+ * How the voices perform the script. Only the tone reaches synthesis here: the
+ * avoid list was already enforced when the words were written, and these
+ * voices cannot add a name that is not in the transcript.
+ */
+
 /** Submit a script. Returns immediately with a job id; synthesis runs after. */
 ttsRouter.post("/", (req, res) => {
   const parsed = parseScript(req.body);
@@ -74,9 +85,27 @@ ttsRouter.post("/", (req, res) => {
     return res.status(400).json({ error: hosts.error });
   }
 
+  const controls = parseGenerationControls(req.body);
+  if (!controls.ok) {
+    return res.status(400).json({ error: controls.error });
+  }
+
+  // The script arriving here is not the one the writer produced: the studio
+  // lets a producer edit turns before rendering, so a banned word removed at
+  // writing time can be typed back in. This is the last point before the
+  // words become audio, which makes it the only place the rule can be kept.
+  const spoken = parsed.script.map((turn) => turn.text).join(" ");
+  const used = findForbiddenTerms(spoken, controls.controls.avoid);
+  if (used.length > 0) {
+    return res.status(422).json({ error: `The script uses: ${used.join(", ")}`, terms: used });
+  }
+
   const voices = resolvePairing(hosts.pairing);
+  const delivery = toDeliveryInstruction(controls.controls.tone);
   const job = createJob<RenderedAudio>();
-  runJob(job, (reportProgress) => synthesizeDialogue(parsed.script, voices, reportProgress));
+  runJob(job, (reportProgress) =>
+    synthesizeDialogue(parsed.script, voices, delivery, reportProgress),
+  );
 
   // 202: accepted, not finished. Location points at the status endpoint.
   res.status(202).location(`/api/tts/jobs/${job.id}`).json({ jobId: job.id, status: job.status });
@@ -94,6 +123,7 @@ ttsRouter.get("/jobs/:jobId", (req, res) => {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     ...(job.error ? { error: job.error } : {}),
+    ...(job.retryable ? { retryable: true } : {}),
     ...(job.progress !== undefined ? { progress: job.progress } : {}),
     ...(job.status === "done" ? { audioUrl: `/api/tts/jobs/${job.id}/audio` } : {}),
   });
