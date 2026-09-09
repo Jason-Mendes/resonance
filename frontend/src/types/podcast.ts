@@ -40,6 +40,8 @@ export interface PodcastEpisode {
   durationSeconds: number;
   formattedDuration: string;
   waveform: number[];
+  /** Null until the render finishes; the player shows a pending state. */
+  audioUrl: string | null;
   chapters: PodcastChapter[];
   dialogue: PodcastDialogueTurn[];
   showNotes: string;
