@@ -21,6 +21,7 @@ export const ArticleStudio: React.FC<ArticleStudioProps> = ({ article }) => {
     genState,
     progress,
     episode,
+    error,
     generatePodcast,
     updateDialogue,
   } = usePodcastGeneration(article);
@@ -36,6 +37,7 @@ export const ArticleStudio: React.FC<ArticleStudioProps> = ({ article }) => {
           onSelectFormat={setSelectedFormat}
           genState={genState}
           progress={progress}
+          error={error}
           episode={episode}
           onGenerate={generatePodcast}
           onUpdateDialogue={updateDialogue}

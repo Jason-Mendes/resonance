@@ -14,6 +14,7 @@ export interface PodcastConfigPanelProps {
   onSelectFormat: (format: PodcastFormat) => void;
   genState: PodcastGenState;
   progress: number;
+  error: string | null;
   onGenerate: () => void;
   hasEpisode: boolean;
 }
@@ -24,6 +25,7 @@ export const PodcastConfigPanel: React.FC<PodcastConfigPanelProps> = ({
   onSelectFormat,
   genState,
   progress,
+  error,
   onGenerate,
   hasEpisode,
 }) => {
@@ -57,6 +59,15 @@ export const PodcastConfigPanel: React.FC<PodcastConfigPanelProps> = ({
           <Mic className="h-3.5 w-3.5" />
           <span>{hasEpisode ? "Regenerate Audio" : "Generate Audio"}</span>
         </Button>
+      )}
+
+      {error && !isGenerating && (
+        <p
+          role="alert"
+          className="p-3 text-xs text-red-700 bg-red-50 border border-red-200 rounded-none"
+        >
+          {error}
+        </p>
       )}
     </div>
   );
