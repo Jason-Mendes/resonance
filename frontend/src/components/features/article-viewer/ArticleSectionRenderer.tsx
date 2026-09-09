@@ -1,6 +1,5 @@
 import * as React from "react";
 
-import { ArticleDataCallout } from "./ArticleDataCallout";
 import { ArticleImageSection } from "./ArticleImageSection";
 import { ArticleKeyPoints } from "./ArticleKeyPoints";
 import { ArticleQuoteSection } from "./ArticleQuoteSection";
@@ -16,8 +15,6 @@ export const ArticleSectionRenderer: React.FC<ArticleSectionRendererProps> = ({ 
   switch (section.type) {
     case "quote":
       return <ArticleQuoteSection section={section} />;
-    case "data-callout":
-      return <ArticleDataCallout section={section} />;
     case "key-points":
       return <ArticleKeyPoints section={section} />;
     case "image":

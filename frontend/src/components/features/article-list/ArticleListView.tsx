@@ -1,8 +1,9 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import * as React from "react";
 
 import { ArticleCard } from "./ArticleCard";
 
+import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useArticlesList } from "@/hooks/useArticlesQuery";
 
@@ -11,19 +12,36 @@ export interface ArticleListViewProps {
   onOpenImport?: () => void;
 }
 
-export const ArticleListView: React.FC<ArticleListViewProps> = ({ onSelectArticle }) => {
+export const ArticleListView: React.FC<ArticleListViewProps> = ({
+  onSelectArticle,
+  onOpenImport,
+}) => {
   const { data: articles, isLoading, isError, refetch } = useArticlesList();
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Editorial Header */}
-      <div className="pb-6 border-b border-black">
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-black">
-          Articles
-        </h1>
-        <p className="text-xs text-zinc-500 mt-1">
-          Select an investigation to open text and generate audio dialogue.
-        </p>
+      <div className="pb-6 border-b border-black flex items-end justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-black">
+            Articles
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">
+            Select an investigation to open text and generate audio dialogue.
+          </p>
+        </div>
+
+        {onOpenImport && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenImport}
+            className="shrink-0 gap-1.5 h-8 text-xs border-zinc-300 text-black hover:bg-zinc-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add article
+          </Button>
+        )}
       </div>
 
       {isLoading && (

@@ -2,6 +2,8 @@ import * as dotenv from "dotenv";
 
 import { getVertexClient } from "../lib/vertex.js";
 
+import type { SocialRequest } from "../lib/social-request.js";
+
 dotenv.config();
 
 // The model we want to use for heavy text reasoning
@@ -88,4 +90,67 @@ export async function generatePodcastScript(articleText: string) {
   });
 
   return JSON.parse(response.text || "[]");
+}
+
+/**
+ * Turns a finished article into a social carousel: an opening, one caption per
+ * published photograph, and a hashtag block.
+ *
+ * The model never sees an image, only the caption NZZ published beneath it.
+ * That keeps every slide grounded in the real photograph without handing a
+ * language model a picture it would otherwise describe from imagination.
+ */
+export async function generateSocialCarousel({
+  articleText,
+  imageCaptions,
+  tags,
+}: SocialRequest): Promise<unknown> {
+  const slideBriefs = imageCaptions
+    .map((caption, index) => `Slide ${index + 1}: ${caption || "(published without a caption)"}`)
+    .join("\n");
+
+  const prompt = `
+    You are the social editor at NZZ (Neue Zürcher Zeitung). Turn the article
+    below into one carousel post for Instagram and LinkedIn.
+
+    Write every field in the same language as the article itself.
+
+    NZZ voice: intellectual restraint, precise nouns, no hype. Never open with
+    a rhetorical question. No emoji. No exclamation marks. No "Thread 🧵",
+    "Let that sink in", or any engagement-bait phrasing.
+
+    Hashtags: return 5 to 8, lowercase, without the "#". Each one must name a
+    subject the article actually covers: a place, an institution, a person, a
+    field. Nothing invented, no slogans, no campaign names, no "breaking".
+    Every hashtag is checked against the article afterwards and dropped if
+    its letters do not appear there, so spell names exactly as written.
+    These section tags are already on the article and must be included: ${tags.join(", ") || "none"}
+
+    The slides array must hold exactly ${imageCaptions.length} objects, one
+    per photograph below, in this order. Not fewer, not more.
+    ${slideBriefs}
+
+    Each slide caption is one or two sentences and must be supported by the
+    article. Where a photograph has no caption, write from the article instead
+    of describing what the picture might show.
+
+    Return a valid JSON object with this structure:
+    {
+      "intro": "Two or three sentences opening the post, stating what the story found.",
+      "slides": [{ "caption": "Caption for slide 1" }],
+      "hashtags": ["lowercase", "without", "hashes"]
+    }
+
+    Article Text:
+    ---
+    ${articleText}
+  `;
+
+  const response = await getVertexClient().models.generateContent({
+    model: TEXT_MODEL,
+    contents: prompt,
+    config: { responseMimeType: "application/json" },
+  });
+
+  return JSON.parse(response.text || "{}");
 }

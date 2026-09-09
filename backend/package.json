@@ -8,6 +8,7 @@
     "test:watch": "vitest",
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.build.json",
+    "seed:articles": "tsx src/scripts/seed-articles.ts",
     "start": "node dist/index.js"
   },
   "keywords": [],
@@ -15,6 +16,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google-cloud/firestore": "^9.0.1",
     "@google-cloud/storage": "^8.0.1",
     "@google-cloud/text-to-speech": "^7.0.0",
     "@google/genai": "^2.21.0",
