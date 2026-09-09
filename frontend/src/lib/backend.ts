@@ -70,10 +70,10 @@ async function authHeaders(base: Record<string, string> = {}): Promise<Record<st
   return token ? { ...base, Authorization: `Bearer ${token}` } : base;
 }
 
-/** POSTs JSON to the backend and returns its parsed response. */
-export async function postToBackend<T>(path: string, body: unknown): Promise<T> {
+/** Sends a JSON body to the backend and returns its parsed response. */
+async function sendToBackend<T>(method: "POST" | "PUT", path: string, body: unknown): Promise<T> {
   const response = await fetch(`${getBackendUrl()}${path}`, {
-    method: "POST",
+    method,
     headers: await authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
     cache: "no-store",
@@ -90,6 +90,14 @@ export async function postToBackend<T>(path: string, body: unknown): Promise<T> 
 
   return response.json() as Promise<T>;
 }
+
+/** Creates a resource: a generation job, or an article an editor typed in. */
+export const postToBackend = <T>(path: string, body: unknown): Promise<T> =>
+  sendToBackend<T>("POST", path, body);
+
+/** Replaces a resource, which so far means saving an edited article. */
+export const putToBackend = <T>(path: string, body: unknown): Promise<T> =>
+  sendToBackend<T>("PUT", path, body);
 
 /** GETs JSON from the backend, for polling a job's status. */
 export async function getFromBackend<T>(path: string): Promise<T> {

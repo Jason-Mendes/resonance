@@ -9,6 +9,8 @@ export interface ArticleInputModalProps {
   isOpen: boolean;
   onClose?: () => void;
   canClose: boolean;
+  /** "Add an article" or "Edit article": the same form serves both. */
+  heading: string;
   textTab: TextInputTabProps;
 }
 
@@ -16,6 +18,7 @@ export const ArticleInputModal: React.FC<ArticleInputModalProps> = ({
   isOpen,
   onClose,
   canClose,
+  heading,
   textTab,
 }) => {
   if (!isOpen) return null;
@@ -24,7 +27,7 @@ export const ArticleInputModal: React.FC<ArticleInputModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
       <div className="relative w-full max-w-xl rounded-xl border border-zinc-200 bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-          <h2 className="text-base font-bold font-serif text-black">Add an article</h2>
+          <h2 className="text-base font-bold font-serif text-black">{heading}</h2>
           {canClose && onClose && (
             <Button
               variant="ghost"

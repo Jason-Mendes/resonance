@@ -24,6 +24,7 @@ export const AddArticleDialog: React.FC<AddArticleDialogProps> = ({ isOpen, onCl
       isOpen={isOpen}
       onClose={onClose}
       canClose
+      heading="Add an article"
       textTab={{
         state: draft,
         onChange: updateField,
