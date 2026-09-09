@@ -7,6 +7,8 @@
  */
 import { randomUUID } from "node:crypto";
 
+import { PublicError, TransientError } from "./errors.js";
+
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface Job<TResult> {
@@ -20,6 +22,8 @@ export interface Job<TResult> {
   result?: TResult;
   /** Populated only when status is 'failed'. Safe to show a caller. */
   error?: string;
+  /** True when the failure was a blip, so trying again is worth offering. */
+  retryable?: boolean;
 }
 
 /** Completed jobs are dropped after this long, so the map cannot grow forever. */
@@ -68,9 +72,17 @@ export function runJob<TResult>(
   void work(reportProgress)
     .then((result) => update<TResult>(job.id, { status: "done", result }))
     .catch((error: unknown) => {
-      // Full detail server-side; the stored message is what a caller may see.
+      // Full detail server-side either way. What differs is what the caller
+      // is told: a PublicError was written for them, anything else is an SDK
+      // message that would name models, projects and quota state.
       console.error(`Job ${job.id} failed:`, error);
-      update<TResult>(job.id, { status: "failed", error: "generation failed" });
+      update<TResult>(job.id, {
+        status: "failed",
+        error: error instanceof PublicError ? error.message : "generation failed",
+        // Lets the studio offer "try again" for a blip and not for a refusal,
+        // instead of showing one dead end for both.
+        retryable: error instanceof TransientError,
+      });
     })
     .finally(() => {
       setTimeout(() => jobs.delete(job.id), JOB_TTL_MS).unref();
