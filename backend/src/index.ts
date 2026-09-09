@@ -4,14 +4,11 @@ import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
 
-// import { WebSocketServer } from 'ws';
-
-// We will import routes once we create them
+import { articlesRouter } from "./routes/articles.js";
 import { briefingRouter } from "./routes/briefing.js";
 import { flexreadRouter } from "./routes/flexread.js";
 import { podcastRouter } from "./routes/podcast.js";
 import { ttsRouter } from "./routes/tts.js";
-// import { setupVoiceChat } from './routes/voice-chat';
 
 // Comma-separated list of origins allowed to call this API. Required rather
 // than defaulted, so a permissive setting can never reach production by
@@ -54,6 +51,7 @@ const apiLimiter = rateLimit({
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 app.use("/api", apiLimiter);
+app.use("/api/articles", articlesRouter);
 app.use("/api/flexread", flexreadRouter);
 app.use("/api/podcast", podcastRouter);
 app.use("/api/tts", ttsRouter);
