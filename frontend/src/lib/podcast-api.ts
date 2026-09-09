@@ -66,6 +66,8 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 interface JobStatus {
   status: "pending" | "running" | "done" | "failed";
   error?: string;
+  /** 0 to 1, reported by the render as each chunk lands. */
+  progress?: number;
 }
 
 /**
@@ -106,7 +108,10 @@ export const renderSummary = async (
 };
 
 /** Starts a render and resolves with the audio URL once the job reports done. */
-export const renderAudio = async (script: BackendScriptTurn[]): Promise<string> => {
+export const renderAudio = async (
+  script: BackendScriptTurn[],
+  onProgress?: (fraction: number) => void,
+): Promise<string> => {
   const start = await fetch("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -126,6 +131,7 @@ export const renderAudio = async (script: BackendScriptTurn[]): Promise<string> 
     const poll = await fetch(`/api/tts/jobs/${jobId}`);
     const job = (await poll.json().catch(() => null)) as JobStatus | null;
 
+    if (typeof job?.progress === "number") onProgress?.(job.progress);
     if (job?.status === "done") return `/api/tts/jobs/${jobId}/audio`;
     if (job?.status === "failed") throw new Error(job.error ?? "The audio render failed");
   }
