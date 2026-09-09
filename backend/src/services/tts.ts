@@ -100,6 +100,10 @@ export async function synthesizeScript(script: ScriptTurn[]): Promise<Buffer> {
 // conversational timing comes from. This is the path the podcast uses; the
 // Cloud TTS path above stays for single-voice work like the audio briefing.
 
+// Pro, not the flash variant. Flash renders the same script in roughly half
+// the time, but on a side-by-side listen its male voice is raspier and more
+// obviously synthetic. Parallel chunking already holds render time near a
+// minute at any script length, so the speed Flash buys is not worth the voice.
 const DIALOGUE_MODEL = "gemini-2.5-pro-preview-tts";
 
 // Chosen by listening to side-by-side samples. Voice quality varies audibly
