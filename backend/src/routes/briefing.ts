@@ -44,6 +44,7 @@ briefingRouter.get("/jobs/:jobId", (req, res) => {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     ...(job.error ? { error: job.error } : {}),
+    ...(job.progress !== undefined ? { progress: job.progress } : {}),
     // The narrated words ship with the status so the caller can show the
     // transcript. They exist only as a by-product of this render.
     ...(job.status === "done" && job.result
