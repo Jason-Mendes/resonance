@@ -175,6 +175,15 @@ export interface RenderedAudio {
   mimeType: string;
 }
 
+/**
+ * A briefing carries the words it narrates. The model writes the summary
+ * during the render, so this is the only place that text exists; asking for it
+ * separately would mean a second call that produced different words.
+ */
+export interface NarratedAudio extends RenderedAudio {
+  text: string;
+}
+
 /** Synthesises one chunk, returning raw PCM so chunks can be joined. */
 async function synthesizeChunk(turns: ScriptTurn[]): Promise<Buffer> {
   const transcript = turns.map((turn) => `${turn.speaker}: ${turn.text}`).join("\n");
@@ -237,7 +246,7 @@ const BRIEFING_VOICE = "en-US-Studio-O";
  * multi-speaker model to coordinate, and Cloud TTS Studio is the better fit:
  * it is generally available rather than preview, and cheaper per run.
  */
-export async function synthesizeBriefing(text: string): Promise<RenderedAudio> {
+export async function synthesizeBriefing(text: string): Promise<NarratedAudio> {
   const audio = await synthesizeTurn({ speaker: "__briefing", text }, BRIEFING_VOICE);
-  return { audio, mimeType: "audio/mpeg" };
+  return { audio, mimeType: "audio/mpeg", text };
 }
