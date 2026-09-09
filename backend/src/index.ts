@@ -43,6 +43,10 @@ const apiLimiter = rateLimit({
   limit: 60,
   standardHeaders: "draft-7",
   legacyHeaders: false,
+  // Only the POSTs spend Gemini and Cloud TTS quota. Every GET under /api reads
+  // a finished job from memory or streams its audio, so counting them would let
+  // a single render exhaust the budget that protects the paid calls.
+  skip: (req) => req.method === "GET",
   message: { error: "Too many requests, please try again later." },
 });
 

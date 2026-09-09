@@ -58,7 +58,11 @@ export async function generatePodcastScript(articleText: string) {
     - Use contractions where they read naturally: "it's", "that's", "they're".
     - No bullet points, headings, lists or markdown. Nobody speaks a bullet point.
     - Spell out numbers and symbols as a person would say them: "about forty per cent", not "~40%".
-    - No stage directions, no "[laughs]", no speaker names inside the text.
+    - No stage directions and no "[laughs]".
+    - The hosts never address each other by name. "HostA" and "HostB" are
+      labels for the JSON field only, never words a host says out loud.
+      "That's a great question, HostA" is wrong: the voice reads the label
+      aloud. Write "That's a great question" instead.
     
     Return the response as a valid JSON array of objects, where each object has:
     {
