@@ -48,6 +48,38 @@ request that needed it rather than the whole backend.
 unauthenticated, so that limit is what stops an open URL from draining the
 Gemini quota.
 
+## Deploying
+
+```bash
+gcloud run deploy resonance-backend \
+  --project nzz-sbx-hckthn08 --region us-central1 --source . \
+  --allow-unauthenticated \
+  --no-cpu-throttling \
+  --max-instances 1 \
+  --memory 1Gi --timeout 300 \
+  --set-env-vars "VERTEX_PROJECT=nzz-sbx-hckthn08,VERTEX_LOCATION=us-central1,FRONTEND_ORIGIN=<frontend url>"
+```
+
+Two of those flags are not optional.
+
+`--no-cpu-throttling` selects instance-based billing. Cloud Run's default only
+allocates CPU while a request is being handled, and every render here returns a
+job id immediately and then works in the background. Without this flag each job
+is created and then frozen, so the studio polls a job that never progresses.
+
+`--max-instances 1` is required because jobs live in an in-memory map. A second
+instance does not share it, so a job created on one and polled on another comes
+back `404`. Lift this only after jobs move to a real store.
+
+`FRONTEND_ORIGIN` must be set for the server to start, but nothing depends on
+its value: the browser talks to the frontend's own origin, which proxies here,
+so no cross-origin request is ever made. On a first deploy, before the frontend
+URL exists, any non-empty value works.
+
+The Cloud Run service runs as the project's Compute Engine default service
+account, which needs `roles/aiplatform.user` to reach Gemini. Without it the
+build and deploy both succeed and every generation fails at runtime.
+
 ## Before you push
 
 CI runs `eslint . --max-warnings=0` from the repo root and `tsc --noEmit` here.
