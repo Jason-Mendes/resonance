@@ -151,3 +151,47 @@ describe("GET /api/tts/jobs/:jobId/audio", () => {
     expect(res.body).toEqual(Buffer.from("fake audio"));
   });
 });
+
+describe("POST /api/tts host pairing", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    synthesizeDialogueMock.mockResolvedValue({
+      audio: Buffer.from("fake audio"),
+      mimeType: "audio/wav",
+    });
+  });
+
+  it("keeps the voices the podcast already had when hosts is omitted", async () => {
+    await request(app).post("/api/tts").send({ script: validScript });
+
+    expect(synthesizeDialogueMock).toHaveBeenCalledWith(
+      validScript,
+      { HostA: "Algieba", HostB: "Aoede" },
+      expect.any(Function),
+    );
+  });
+
+  it("gives a same-gender pairing two different voices", async () => {
+    for (const hosts of ["male-male", "female-female"]) {
+      synthesizeDialogueMock.mockClear();
+      await request(app).post("/api/tts").send({ script: validScript, hosts });
+
+      const call = synthesizeDialogueMock.mock.calls.at(0);
+      if (!call) {
+        throw new Error(`${hosts} never reached synthesis`);
+      }
+      const voices = call[1] as Record<string, string>;
+      expect(voices.HostA, `${hosts} collapsed to one voice`).not.toBe(voices.HostB);
+    }
+  });
+
+  it("rejects an unknown pairing instead of quietly using the default", async () => {
+    const res = await request(app)
+      .post("/api/tts")
+      .send({ script: validScript, hosts: "male-robot" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("hosts must be one of");
+    expect(synthesizeDialogueMock).not.toHaveBeenCalled();
+  });
+});
