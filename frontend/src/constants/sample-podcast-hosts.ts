@@ -1,9 +1,9 @@
-import { PodcastHost } from "@/types/podcast";
+import { PodcastFormat, PodcastHost } from "@/types/podcast";
 
 export interface HostPairPreset {
   id: string;
   name: string;
-  format: "dialogue" | "solo";
+  format: PodcastFormat;
   description: string;
   hosts: PodcastHost[];
 }
@@ -11,8 +11,8 @@ export interface HostPairPreset {
 export const HOST_PAIR_PRESETS: HostPairPreset[] = [
   {
     id: "editorial-desk",
-    name: "Dialogue",
-    format: "dialogue",
+    name: "Podcast",
+    format: "podcast",
     description: "Two hosts in conversation.",
     hosts: [
       {
@@ -33,9 +33,9 @@ export const HOST_PAIR_PRESETS: HostPairPreset[] = [
   },
   {
     id: "solo-dispatch",
-    name: "Solo",
-    format: "solo",
-    description: "Single host presentation.",
+    name: "Summary",
+    format: "summary",
+    description: "One voice, about a minute.",
     hosts: [
       {
         id: "host-1",

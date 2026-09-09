@@ -1,4 +1,9 @@
-export type PodcastFormat = "dialogue" | "solo" | "interview";
+/**
+ * The two things the studio produces. These are different pipelines, not a
+ * styling choice: a podcast is a generated two-host script rendered by Gemini,
+ * a summary is a sixty-second brief read by one Cloud TTS voice.
+ */
+export type PodcastFormat = "podcast" | "summary";
 
 export type PodcastGenState = "idle" | "generating" | "completed" | "error";
 

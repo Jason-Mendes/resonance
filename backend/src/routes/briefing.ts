@@ -3,7 +3,7 @@ import { Router } from "express";
 import { parseArticleText } from "../lib/articleText.js";
 import { createJob, getJob, runJob } from "../lib/jobs.js";
 import { generateFlexReadLayers } from "../services/gemini.js";
-import { synthesizeBriefing, type RenderedAudio } from "../services/tts.js";
+import { synthesizeBriefing, type NarratedAudio } from "../services/tts.js";
 
 export const briefingRouter = Router();
 
@@ -17,7 +17,7 @@ briefingRouter.post("/", (req, res) => {
     return res.status(400).json({ error: parsed.error });
   }
 
-  const job = createJob<RenderedAudio>();
+  const job = createJob<NarratedAudio>();
   runJob(job, async () => {
     const layers: unknown = await generateFlexReadLayers(parsed.articleText);
     const summary = (layers as { summary60s?: unknown })?.summary60s;
@@ -34,7 +34,7 @@ briefingRouter.post("/", (req, res) => {
 });
 
 briefingRouter.get("/jobs/:jobId", (req, res) => {
-  const job = getJob<RenderedAudio>(req.params.jobId);
+  const job = getJob<NarratedAudio>(req.params.jobId);
   if (!job) {
     return res.status(404).json({ error: "job not found" });
   }
@@ -44,12 +44,16 @@ briefingRouter.get("/jobs/:jobId", (req, res) => {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     ...(job.error ? { error: job.error } : {}),
-    ...(job.status === "done" ? { audioUrl: `/api/briefing/jobs/${job.id}/audio` } : {}),
+    // The narrated words ship with the status so the caller can show the
+    // transcript. They exist only as a by-product of this render.
+    ...(job.status === "done" && job.result
+      ? { audioUrl: `/api/briefing/jobs/${job.id}/audio`, text: job.result.text }
+      : {}),
   });
 });
 
 briefingRouter.get("/jobs/:jobId/audio", (req, res) => {
-  const job = getJob<RenderedAudio>(req.params.jobId);
+  const job = getJob<NarratedAudio>(req.params.jobId);
   if (!job) {
     return res.status(404).json({ error: "job not found" });
   }
