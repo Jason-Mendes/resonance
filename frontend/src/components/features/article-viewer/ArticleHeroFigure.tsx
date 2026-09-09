@@ -4,7 +4,8 @@ import * as React from "react";
 import { ArticleHeroImage } from "@/types/article";
 
 export interface ArticleHeroFigureProps {
-  image: ArticleHeroImage;
+  /** Absent on articles an editor added without one, which renders nothing. */
+  image: ArticleHeroImage | undefined;
   alt: string;
 }
 

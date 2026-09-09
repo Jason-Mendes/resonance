@@ -53,14 +53,19 @@ Gemini quota.
 ```bash
 gcloud run deploy resonance-backend \
   --project nzz-sbx-hckthn08 --region us-central1 --source . \
-  --allow-unauthenticated \
+  --no-allow-unauthenticated \
   --no-cpu-throttling \
   --max-instances 1 \
   --memory 1Gi --timeout 300 \
-  --set-env-vars "VERTEX_PROJECT=nzz-sbx-hckthn08,VERTEX_LOCATION=us-central1,FRONTEND_ORIGIN=<frontend url>"
+  --set-env-vars "VERTEX_PROJECT=nzz-sbx-hckthn08,VERTEX_LOCATION=us-central1,FIRESTORE_PROJECT=nzz-sbx-hckthn08,FRONTEND_ORIGIN=<frontend url>"
 ```
 
-Two of those flags are not optional.
+Three of those flags are not optional.
+
+`--no-allow-unauthenticated` keeps the service private. Only the frontend
+calls this API, and it does so as its own service account, so nothing needs
+public access. Opening it would expose every paid Gemini endpoint to anyone
+who finds the URL.
 
 `--no-cpu-throttling` selects instance-based billing. Cloud Run's default only
 allocates CPU while a request is being handled, and every render here returns a

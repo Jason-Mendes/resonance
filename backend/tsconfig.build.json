@@ -9,5 +9,7 @@
   // all replaces tsc's defaults, which already covered both. Omitting dist
   // makes tsc read its own previous .d.ts output back as input and refuse to
   // overwrite it.
-  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
+  // src/scripts holds developer tools run by hand with tsx. They are still
+  // type-checked by the base config, but they have no place in the image.
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/scripts/**"]
 }

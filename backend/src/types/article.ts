@@ -1,3 +1,15 @@
+/**
+ * The article shape this service stores and serves.
+ *
+ * This is the contract with the frontend, which holds its own definition. The
+ * two are separate deployables with no shared package, so the duplication is
+ * deliberate: changing a field here means changing it there too.
+ *
+ * The frontend's version carries three extra optional fields — quoteRole,
+ * dataMetric and avatarUrl — that no NZZ article can produce. They are absent
+ * here so this type describes only what the service can actually return.
+ */
+
 export type ArticleSectionType =
   | "lead"
   | "paragraph"
@@ -5,6 +17,7 @@ export type ArticleSectionType =
   | "quote"
   | "image"
   | "key-points"
+  | "data-callout"
   | "question"
   | "answer"
   | "infobox";
@@ -15,7 +28,6 @@ export interface ArticleSection {
   content: string;
   items?: string[];
   quoteAuthor?: string;
-  quoteRole?: string;
   imageUrl?: string;
   imageCaption?: string;
 }
@@ -23,7 +35,6 @@ export interface ArticleSection {
 export interface ArticleAuthor {
   name: string;
   role: string;
-  avatarUrl?: string;
 }
 
 export interface ArticleHeroImage {
@@ -42,22 +53,16 @@ export interface Article {
   sourceUrl?: string;
   readTimeMinutes: number;
   wordCount: number;
-  /** Absent on articles an editor added without one. */
+  /**
+   * Absent when an editor adds an article without one. Every NZZ article has
+   * a teaser image and the adapter throws if one is missing, so in practice
+   * this is only unset for articles typed into the app.
+   */
   heroImage?: ArticleHeroImage;
   sections: ArticleSection[];
   tags: string[];
   summaryBullets?: string[];
 }
 
-/** What the article list returns: everything except the body. */
+/** The subset sent for the article list, where bodies would be wasted bytes. */
 export type ArticleSummary = Omit<Article, "sections" | "summaryBullets" | "sourceUrl">;
-
-/** The fields the editor form collects. The backend builds the article. */
-export interface ArticleDraft {
-  title: string;
-  body: string;
-  subtitle?: string;
-  kicker?: string;
-  authorName?: string;
-  heroImageUrl?: string;
-}
