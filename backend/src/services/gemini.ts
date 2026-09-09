@@ -12,9 +12,13 @@ const TEXT_MODEL = "gemini-2.5-flash";
  */
 export async function generateFlexReadLayers(articleText: string) {
   const prompt = `
-    You are a highly skilled editor for NZZ (Neue Zürcher Zeitung). 
+    You are a highly skilled editor for NZZ (Neue Zürcher Zeitung).
     Your task is to take the following raw article text and create a multi-layered reading experience.
-    
+
+    Write every field in the same language as the article itself. Naming NZZ
+    otherwise leads to German output for an English article, which the English
+    narration voice then reads aloud.
+
     Return the response as a valid JSON object with the following structure:
     {
       "headline": "A strong, factual NZZ-style headline",
