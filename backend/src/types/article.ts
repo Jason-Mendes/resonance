@@ -53,7 +53,12 @@ export interface Article {
   sourceUrl?: string;
   readTimeMinutes: number;
   wordCount: number;
-  heroImage: ArticleHeroImage;
+  /**
+   * Absent when an editor adds an article without one. Every NZZ article has
+   * a teaser image and the adapter throws if one is missing, so in practice
+   * this is only unset for articles typed into the app.
+   */
+  heroImage?: ArticleHeroImage;
   sections: ArticleSection[];
   tags: string[];
   summaryBullets?: string[];

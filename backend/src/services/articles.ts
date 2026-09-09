@@ -1,11 +1,17 @@
 /**
- * Reads NZZ articles out of Firestore.
+ * Reads and creates articles in Firestore.
  *
- * Writing is not here: articles arrive through `scripts/seed-articles.ts`,
- * run by hand. Nothing on the request path creates or modifies an article.
+ * Articles arrive two ways. The 29 NZZ ones are loaded by
+ * `scripts/seed-articles.ts`, run by hand, and keep their numeric document
+ * ids. Ones an editor types in are created here and get an "ed-" id. Nothing
+ * modifies or deletes an existing article.
  */
+import { randomUUID } from "node:crypto";
+
+import { draftToArticle } from "../lib/article-draft.js";
 import { getFirestore } from "../lib/firestore.js";
 
+import type { ArticleDraft } from "../lib/article-draft.js";
 import type { Article, ArticleSummary } from "../types/article.js";
 
 export const ARTICLES_COLLECTION = "articles";
@@ -37,6 +43,23 @@ export async function listArticleSummaries(): Promise<ArticleSummary[]> {
     .get();
 
   return snapshot.docs.map((doc) => doc.data() as ArticleSummary);
+}
+
+/**
+ * Stores an article an editor typed in and returns it with its new id.
+ *
+ * The id is generated here, never taken from the request. NZZ articles are
+ * keyed on their numeric document id, so the "ed-" prefix also makes the two
+ * sources tellable apart in the database.
+ */
+export async function createArticle(draft: ArticleDraft): Promise<Article> {
+  const id = `ed-${randomUUID()}`;
+  const article = draftToArticle(draft, id);
+
+  // create() rather than set(): it fails if the document already exists,
+  // so a generated id can never quietly overwrite a stored article.
+  await getFirestore().collection(ARTICLES_COLLECTION).doc(id).create(article);
+  return article;
 }
 
 /** Null when no article carries that id, which the route turns into a 404. */

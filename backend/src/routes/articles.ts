@@ -1,15 +1,18 @@
 import { Router } from "express";
 
-import { getArticleById, listArticleSummaries } from "../services/articles.js";
+import { parseArticleDraft } from "../lib/article-draft.js";
+import { createArticle, getArticleById, listArticleSummaries } from "../services/articles.js";
 
 export const articlesRouter = Router();
 
 /**
- * Article ids are NZZ document ids, which are digits only. Validated before
- * the value reaches Firestore, where an id containing slashes is read as a
- * document path and would address something other than an article.
+ * Two shapes of id reach this route: NZZ document ids, which are digits, and
+ * "ed-<uuid>" for articles typed into the app. Both are letters, digits and
+ * hyphens, so anything else is refused before it reaches Firestore, where an
+ * id containing a slash is read as a document path and would address
+ * something other than an article.
  */
-const ARTICLE_ID_PATTERN = /^\d+$/;
+const ARTICLE_ID_PATTERN = /^[A-Za-z0-9-]{1,64}$/;
 
 articlesRouter.get("/", async (_req, res) => {
   try {
@@ -22,10 +25,27 @@ articlesRouter.get("/", async (_req, res) => {
   }
 });
 
+articlesRouter.post("/", async (req, res) => {
+  const parsed = parseArticleDraft(req.body);
+  if (!parsed.ok) {
+    return res.status(400).json({ error: parsed.error });
+  }
+
+  try {
+    const article = await createArticle(parsed.draft);
+    // 201 with the stored article, so the caller gets the server-assigned id
+    // and the parsed sections without a second request.
+    res.status(201).location(`/api/articles/${article.id}`).json(article);
+  } catch (error) {
+    console.error("Article create error:", error);
+    res.status(500).json({ error: "Could not save the article" });
+  }
+});
+
 articlesRouter.get("/:id", async (req, res) => {
   const id = req.params.id;
   if (!id || !ARTICLE_ID_PATTERN.test(id)) {
-    return res.status(400).json({ error: "An article id must be a number" });
+    return res.status(400).json({ error: "That is not a valid article id" });
   }
 
   try {
