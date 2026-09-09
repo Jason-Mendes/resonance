@@ -124,7 +124,7 @@ Gemini quota.
 
 ```bash
 gcloud run deploy resonance-backend \
-  --project nzz-sbx-hckthn08 --region us-central1 --source . \
+  --project nzz-sbx-hckthn08 --region europe-west6 --source . \
   --no-allow-unauthenticated \
   --no-cpu-throttling \
   --max-instances 1 \
@@ -147,6 +147,11 @@ is created and then frozen, so the studio polls a job that never progresses.
 `--max-instances 1` is required because jobs live in an in-memory map. A second
 instance does not share it, so a job created on one and polled on another comes
 back `404`. Lift this only after jobs move to a real store.
+
+The service runs in `europe-west6`, next to the Firestore database, so article
+reads stay in Zurich. `VERTEX_LOCATION` stays `us-central1` regardless: the
+speech model this service calls is not offered in the Swiss region, and the
+call is made from Zurich to Iowa.
 
 `FRONTEND_ORIGIN` must be set for the server to start, but nothing depends on
 its value: the browser talks to the frontend's own origin, which proxies here,

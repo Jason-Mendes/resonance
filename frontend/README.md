@@ -24,7 +24,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ```bash
 gcloud run deploy resonance-frontend \
-  --project nzz-sbx-hckthn08 --region us-central1 --source . \
+  --project nzz-sbx-hckthn08 --region europe-west6 --source . \
   --allow-unauthenticated \
   --set-env-vars "BACKEND_URL=<backend url>"
 ```
