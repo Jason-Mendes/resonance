@@ -38,9 +38,7 @@ describe("POST /api/briefing", () => {
     const res = await request(app).post("/api/briefing").send(article);
 
     expect(res.status).toBe(202);
-    await vi.waitFor(() =>
-      expect(synthesizeBriefingMock).toHaveBeenCalledWith("A short summary."),
-    );
+    await vi.waitFor(() => expect(synthesizeBriefingMock).toHaveBeenCalledWith("A short summary."));
   });
 
   it("fails the job rather than narrating nothing when there is no summary", async () => {

@@ -1,11 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 
-import {
-  createChunkCacheKey,
-  getChunkCache,
-  setChunkCache,
-  clearChunkCache,
-} from "./tts-cache.js";
+import { createChunkCacheKey, getChunkCache, setChunkCache, clearChunkCache } from "./tts-cache.js";
 
 describe("tts-cache", () => {
   beforeEach(() => {

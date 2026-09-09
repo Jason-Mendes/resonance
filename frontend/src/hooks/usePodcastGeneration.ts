@@ -13,12 +13,7 @@ import {
 } from "@/lib/podcast-production";
 import { BackendScriptTurn } from "@/lib/podcast-script";
 import { Article } from "@/types/article";
-import {
-  PodcastEpisode,
-  PodcastFormat,
-  PodcastDialogueTurn,
-  VoicePair,
-} from "@/types/podcast";
+import { PodcastEpisode, PodcastFormat, PodcastDialogueTurn, VoicePair } from "@/types/podcast";
 
 const GENERATION_START_PROGRESS = 15;
 

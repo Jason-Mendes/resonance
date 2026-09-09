@@ -130,6 +130,53 @@ const useArticleFiltering = ({
   };
 };
 
+const ArticleListLoading: React.FC = () => (
+  <div className="flex flex-col items-center justify-center py-24 space-y-2 text-zinc-400">
+    <Loader2 className="h-5 w-5 animate-spin text-black" />
+    <span className="text-xs font-mono">Loading articles...</span>
+  </div>
+);
+
+interface ArticleListResultsProps {
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  articles: ArticleSummary[];
+  searchQuery: string;
+  onClearSearch: () => void;
+  isSynthesized: (id: string) => boolean;
+  getTopic: (id: string) => string | undefined;
+  onSelect: (id: string) => void;
+}
+
+/** Whichever of the four states the list is in: loading, failed, empty, or full. */
+const ArticleListResults: React.FC<ArticleListResultsProps> = ({
+  isLoading,
+  isError,
+  onRetry,
+  articles,
+  searchQuery,
+  onClearSearch,
+  isSynthesized,
+  getTopic,
+  onSelect,
+}) => {
+  if (isLoading) return <ArticleListLoading />;
+  if (isError) return <ErrorState message="Failed to load articles." onRetry={onRetry} />;
+  if (articles.length === 0) {
+    return <ArticleListEmptyState query={searchQuery} onClearSearch={onClearSearch} />;
+  }
+
+  return (
+    <ArticleListGrid
+      articles={articles}
+      isSynthesized={isSynthesized}
+      getTopic={getTopic}
+      onSelect={onSelect}
+    />
+  );
+};
+
 export const ArticleListView: React.FC<ArticleListViewProps> = ({
   onSelectArticle,
   onOpenImport,
@@ -165,27 +212,17 @@ export const ArticleListView: React.FC<ArticleListViewProps> = ({
         counts={topicCounts}
       />
 
-      {isLoading && (
-        <div className="flex flex-col items-center justify-center py-24 space-y-2 text-zinc-400">
-          <Loader2 className="h-5 w-5 animate-spin text-black" />
-          <span className="text-xs font-mono">Loading articles...</span>
-        </div>
-      )}
-
-      {isError && <ErrorState message="Failed to load articles." onRetry={() => refetch()} />}
-
-      {!isLoading && !isError && filtered.length === 0 && (
-        <ArticleListEmptyState query={searchQuery} onClearSearch={() => setSearchQuery("")} />
-      )}
-
-      {!isLoading && !isError && filtered.length > 0 && (
-        <ArticleListGrid
-          articles={filtered}
-          isSynthesized={isSynthesized}
-          getTopic={getTopic}
-          onSelect={onSelectArticle}
-        />
-      )}
+      <ArticleListResults
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        articles={filtered}
+        searchQuery={searchQuery}
+        onClearSearch={() => setSearchQuery("")}
+        isSynthesized={isSynthesized}
+        getTopic={getTopic}
+        onSelect={onSelectArticle}
+      />
     </div>
   );
 };

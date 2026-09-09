@@ -50,9 +50,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         </span>
       </div>
 
-      <h3 className="font-serif text-xl font-bold leading-snug text-black mt-3">
-        {article.title}
-      </h3>
+      <h3 className="font-serif text-xl font-bold leading-snug text-black mt-3">{article.title}</h3>
 
       <p className="text-xs text-zinc-600 line-clamp-3 leading-relaxed mt-2.5">
         {article.subtitle}

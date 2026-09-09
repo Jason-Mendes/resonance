@@ -1,7 +1,4 @@
-export type VoicePairType =
-  | "male_female"
-  | "female_female"
-  | "male_male";
+export type VoicePairType = "male_female" | "female_female" | "male_male";
 
 export interface PodcastHostInfo {
   id: string;

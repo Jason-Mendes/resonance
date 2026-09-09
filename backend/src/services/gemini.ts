@@ -114,15 +114,10 @@ export interface PodcastGenerationResult {
   script: { speaker: string; text: string }[];
 }
 
-/**
- * Generates a two-host podcast script discussing the article, labeled with an editorial topic.
- */
-export async function generatePodcastScript(
-  articleText: string,
-  controls: GenerationControls = NO_CONTROLS,
-): Promise<PodcastGenerationResult> {
-  const attempt = async (correction: string) => {
-    const prompt = `
+/** The writing brief: the fixed rules, the register the controls ask for, and
+ * any correction earned by a previous attempt. */
+function podcastPrompt(articleText: string, controls: GenerationControls, correction: string) {
+  return `
     Act as a professional podcast producer. Based on the provided article, categorize the primary topic and write a 3-4 minute dialogue between two hosts:
     - "HostA": Analytical, expert, provides context.
     - "HostB": Curious, casual, asks the right questions.
@@ -158,15 +153,24 @@ export async function generatePodcastScript(
         }
       ]
     }
-    
+
     Article Text:
     ---
     ${articleText}
   `;
+}
 
+/**
+ * Generates a two-host podcast script discussing the article, labeled with an editorial topic.
+ */
+export async function generatePodcastScript(
+  articleText: string,
+  controls: GenerationControls = NO_CONTROLS,
+): Promise<PodcastGenerationResult> {
+  const attempt = async (correction: string) => {
     const response = await getVertexClient().models.generateContent({
       model: TEXT_MODEL,
-      contents: prompt,
+      contents: podcastPrompt(articleText, controls, correction),
       config: {
         responseMimeType: "application/json",
       },

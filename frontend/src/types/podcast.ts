@@ -5,10 +5,7 @@
  */
 export type PodcastFormat = "podcast" | "summary";
 
-export type VoicePair =
-  | "male_female"
-  | "female_female"
-  | "male_male";
+export type VoicePair = "male_female" | "female_female" | "male_male";
 
 export type PodcastGenState = "idle" | "generating" | "completed" | "error";
 

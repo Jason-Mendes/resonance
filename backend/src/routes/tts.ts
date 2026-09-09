@@ -6,8 +6,8 @@ import {
   toDeliveryInstruction,
 } from "../lib/generation-controls.js";
 import { createJob, getJob, runJob } from "../lib/jobs.js";
-import { synthesizeDialogue, type RenderedAudio, type ScriptTurn } from "../services/tts.js";
 import { isVoicePair } from "../services/tts-voices.js";
+import { synthesizeDialogue, type RenderedAudio, type ScriptTurn } from "../services/tts.js";
 
 import type { VoicePairType } from "../services/tts-voices.js";
 
@@ -16,14 +16,20 @@ export const ttsRouter = Router();
 const MAX_TURNS = 120;
 const MAX_TURN_CHARS = 2_000;
 
-function parseTurns(rawList: unknown[]): { ok: true; turns: ScriptTurn[] } | { ok: false; error: string } {
+function parseTurns(
+  rawList: unknown[],
+): { ok: true; turns: ScriptTurn[] } | { ok: false; error: string } {
   if (rawList.length > MAX_TURNS) {
     return { ok: false, error: `script must have at most ${MAX_TURNS} turns` };
   }
   const turns: ScriptTurn[] = [];
   for (const [index, raw] of rawList.entries()) {
     const turn = raw as { speaker?: unknown; text?: unknown };
-    if (typeof turn?.speaker !== "string" || typeof turn?.text !== "string" || turn.text.trim() === "") {
+    if (
+      typeof turn?.speaker !== "string" ||
+      typeof turn?.text !== "string" ||
+      turn.text.trim() === ""
+    ) {
       return { ok: false, error: `turn ${index} needs a speaker and non-empty text` };
     }
     if (turn.text.length > MAX_TURN_CHARS) {

@@ -89,15 +89,9 @@ export const useSynthesizedArticles = () => {
     unmarkStoredArticle(id);
   }, []);
 
-  const isSynthesized = useCallback(
-    (id: string) => synthesizedIds.includes(id),
-    [synthesizedIds],
-  );
+  const isSynthesized = useCallback((id: string) => synthesizedIds.includes(id), [synthesizedIds]);
 
-  const getTopic = useCallback(
-    (id: string): string | undefined => topics[id],
-    [topics],
-  );
+  const getTopic = useCallback((id: string): string | undefined => topics[id], [topics]);
 
   const availableTopics = Array.from(
     new Set(Object.values(topics).filter((t): t is string => Boolean(t))),
