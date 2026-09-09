@@ -5,6 +5,11 @@
  */
 export type PodcastFormat = "podcast" | "summary";
 
+export type VoicePair =
+  | "male_female"
+  | "female_female"
+  | "male_male";
+
 export type PodcastGenState = "idle" | "generating" | "completed" | "error";
 
 export interface PodcastHost {
@@ -32,6 +37,7 @@ export interface PodcastEpisode {
   title: string;
   subtitle: string;
   showName: string;
+  topic?: string;
   hosts: PodcastHost[];
   format: PodcastFormat;
   durationSeconds: number;

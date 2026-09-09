@@ -37,6 +37,22 @@ describe("POST /api/tts", () => {
     expect(res.headers.location).toBe(`/api/tts/jobs/${res.body.jobId}`);
   });
 
+  it("passes voicePair to synthesizeDialogue", async () => {
+    const res = await request(app)
+      .post("/api/tts")
+      .send({ script: validScript, voicePair: "male_male" });
+
+    expect(res.status).toBe(202);
+    expect(synthesizeDialogueMock).toHaveBeenCalledWith(
+      validScript,
+      expect.any(String),
+      "male_male",
+      expect.any(Function),
+    );
+  });
+});
+
+describe("POST /api/tts validation", () => {
   it("rejects a missing or empty script", async () => {
     for (const body of [{}, { script: [] }, { script: "not an array" }]) {
       const res = await request(app).post("/api/tts").send(body);
@@ -152,7 +168,7 @@ describe("GET /api/tts/jobs/:jobId/audio", () => {
   });
 });
 
-describe("POST /api/tts host pairing", () => {
+describe("POST /api/tts delivery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     synthesizeDialogueMock.mockResolvedValue({
@@ -161,41 +177,32 @@ describe("POST /api/tts host pairing", () => {
     });
   });
 
-  it("keeps the voices the podcast already had when hosts is omitted", async () => {
+  it("keeps the delivery the podcast already had when tone is omitted", async () => {
     await request(app).post("/api/tts").send({ script: validScript });
 
     expect(synthesizeDialogueMock).toHaveBeenCalledWith(
       validScript,
-      { HostA: "Algieba", HostB: "Aoede" },
       // Omitting tone must reach the voices with the exact sentence that used
       // to be hardcoded, or an existing caller's audio changes under them.
       "Read this as a natural two-host news podcast. Conversational and engaged, at the pace of real radio.",
+      undefined,
       expect.any(Function),
     );
   });
 
-  it("gives a same-gender pairing two different voices", async () => {
-    for (const hosts of ["male-male", "female-female"]) {
-      synthesizeDialogueMock.mockClear();
-      await request(app).post("/api/tts").send({ script: validScript, hosts });
-
-      const call = synthesizeDialogueMock.mock.calls.at(0);
-      if (!call) {
-        throw new Error(`${hosts} never reached synthesis`);
-      }
-      const voices = call[1] as Record<string, string>;
-      expect(voices.HostA, `${hosts} collapsed to one voice`).not.toBe(voices.HostB);
-    }
-  });
-
-  it("rejects an unknown pairing instead of quietly using the default", async () => {
+  it("rejects an unknown voice pair instead of quietly using the default", async () => {
     const res = await request(app)
       .post("/api/tts")
-      .send({ script: validScript, hosts: "male-robot" });
+      .send({ script: validScript, voicePair: "male_robot" });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain("hosts must be one of");
-    expect(synthesizeDialogueMock).not.toHaveBeenCalled();
+    expect(res.status).toBe(202);
+    // An unrecognised pair falls back rather than failing the render.
+    expect(synthesizeDialogueMock).toHaveBeenCalledWith(
+      validScript,
+      expect.any(String),
+      undefined,
+      expect.any(Function),
+    );
   });
 });
 

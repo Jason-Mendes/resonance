@@ -26,15 +26,33 @@ describe("POST /api/podcast", () => {
     expect(res.body.error).toBe("Missing text");
   });
 
-  it("returns script on success", async () => {
+  it("returns script and hosts on success", async () => {
     vi.spyOn(articleTextParser, "parseArticleText").mockReturnValueOnce(parseGives("Content"));
 
-    const mockScript = [{ speaker: "HostA", text: "Hello" }];
-    vi.spyOn(geminiService, "generatePodcastScript").mockResolvedValueOnce(mockScript);
+    const mockOutput = { topic: "Science", script: [{ speaker: "HostA", text: "Hello" }] };
+    vi.spyOn(geminiService, "generatePodcastScript").mockResolvedValueOnce(mockOutput);
 
     const res = await request(app).post("/api/podcast").send({ articleText: "Content" });
     expect(res.status).toBe(200);
-    expect(res.body.script).toEqual(mockScript);
+    expect(res.body.topic).toBe("Science");
+    expect(res.body.script).toEqual(mockOutput.script);
+    expect(Array.isArray(res.body.hosts)).toBe(true);
+    expect(res.body.hosts[0].id).toBe("HostA");
+  });
+
+  it("returns appropriate hosts for chosen voicePair", async () => {
+    vi.spyOn(articleTextParser, "parseArticleText").mockReturnValueOnce(parseGives("Content"));
+    vi.spyOn(geminiService, "generatePodcastScript").mockResolvedValueOnce({
+      topic: "General",
+      script: [],
+    });
+
+    const res = await request(app)
+      .post("/api/podcast")
+      .send({ articleText: "Content", voicePair: "female_female" });
+    expect(res.status).toBe(200);
+    expect(res.body.hosts[0].gender).toBe("female");
+    expect(res.body.hosts[1].gender).toBe("female");
   });
 
   it("returns generic 500 error and obscures internal SDK errors", async () => {

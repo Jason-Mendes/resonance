@@ -1,5 +1,6 @@
 export * from "./PodcastConfigPanel";
 export * from "./PodcastFormatSelector";
+export * from "./VoicePairSelector";
 export * from "./PodcastPlayerCard";
 export * from "./PodcastPlayerHeader";
 export * from "./PodcastPlayerControls";

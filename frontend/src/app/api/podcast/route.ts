@@ -12,7 +12,9 @@ import { pickControls } from "@/lib/generation-controls";
  */
 
 interface BackendScript {
+  topic?: string;
   script: { speaker: string; text: string }[];
+  hosts?: { id: string; name: string; gender: "male" | "female"; role: string; voice: string }[];
 }
 
 export async function POST(request: Request) {
@@ -23,17 +25,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "articleId must be a non-empty string" }, { status: 400 });
   }
 
+  const voicePair = (body as { voicePair?: unknown })?.voicePair;
+
   try {
     const article = await fetchArticle(articleId);
     if (!article) {
       return NextResponse.json({ error: "Article not found" }, { status: 404 });
     }
 
-    const { script } = await postToBackend<BackendScript>("/api/podcast", {
+    const data = await postToBackend<BackendScript>("/api/podcast", {
       articleText: articleToText(article),
       ...pickControls(body),
+      ...(typeof voicePair === "string" ? { voicePair } : {}),
     });
-    return NextResponse.json({ script });
+
+    return NextResponse.json({
+      topic: data.topic ?? "General",
+      script: data.script,
+      hosts: data.hosts ?? [],
+    });
   } catch (error) {
     if (error instanceof BackendError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

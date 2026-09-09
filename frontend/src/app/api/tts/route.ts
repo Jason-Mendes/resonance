@@ -17,14 +17,21 @@ interface JobAccepted {
 
 export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => null);
-  const script = (body as { script?: unknown })?.script;
+  const container = body as { script?: unknown; voicePair?: unknown } | null;
+  const script = container?.script;
 
   if (!Array.isArray(script) || script.length === 0) {
     return NextResponse.json({ error: "script must be a non-empty array" }, { status: 400 });
   }
 
+  const voicePair = container?.voicePair;
+
   try {
-    const job = await postToBackend<JobAccepted>("/api/tts", { script, ...pickControls(body) });
+    const job = await postToBackend<JobAccepted>("/api/tts", {
+      script,
+      ...pickControls(body),
+      ...(typeof voicePair === "string" ? { voicePair } : {}),
+    });
     return NextResponse.json(job, { status: 202 });
   } catch (error) {
     if (error instanceof BackendError) {

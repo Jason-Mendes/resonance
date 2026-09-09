@@ -12,11 +12,14 @@ import {
   PodcastFormat,
   PodcastGenState,
   PodcastDialogueTurn,
+  VoicePair,
 } from "@/types/podcast";
 
 export interface PodcastStudioSidebarProps {
   selectedPairId: string;
   onSelectPairId: (id: string) => void;
+  selectedVoicePair: VoicePair;
+  onSelectVoicePair: (pair: VoicePair) => void;
   selectedFormat: PodcastFormat;
   onSelectFormat: (format: PodcastFormat) => void;
   genState: PodcastGenState;
@@ -24,6 +27,7 @@ export interface PodcastStudioSidebarProps {
   error: string | null;
   episode: PodcastEpisode | null;
   onGenerate: () => void;
+  onResynthesize?: (dialogue?: PodcastDialogueTurn[]) => void;
   onUpdateDialogue?: (dialogue: PodcastDialogueTurn[]) => void;
 }
 
@@ -33,21 +37,8 @@ const SIDEBAR_TABS: TabItem[] = [
   { id: "notes", label: "Notes", icon: <FileText className="h-3.5 w-3.5" /> },
 ];
 
-export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
-  selectedPairId,
-  onSelectPairId,
-  selectedFormat,
-  onSelectFormat,
-  genState,
-  progress,
-  error,
-  episode,
-  onGenerate,
-  onUpdateDialogue,
-}) => {
+const useSidebarTabs = (episode: PodcastEpisode | null, genState: PodcastGenState) => {
   const [activeTab, setActiveTab] = React.useState<string>("config");
-
-  const { playback, dialogue, activeTurnId } = useFollowAlongTranscript(episode);
 
   React.useEffect(() => {
     if (episode && genState === "completed") {
@@ -55,12 +46,32 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
     }
   }, [episode, genState]);
 
-  // A failure is reported on the Setup tab, next to the button that caused it.
   React.useEffect(() => {
-    if (genState === "error") {
+    if (genState === "error" && !episode) {
       setActiveTab("config");
     }
-  }, [genState]);
+  }, [genState, episode]);
+
+  return { activeTab, setActiveTab };
+};
+
+export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
+  selectedPairId,
+  onSelectPairId,
+  selectedVoicePair,
+  onSelectVoicePair,
+  selectedFormat,
+  onSelectFormat,
+  genState,
+  progress,
+  error,
+  episode,
+  onGenerate,
+  onResynthesize,
+  onUpdateDialogue,
+}) => {
+  const { activeTab, setActiveTab } = useSidebarTabs(episode, genState);
+  const { playback, dialogue, activeTurnId } = useFollowAlongTranscript(episode);
 
   return (
     <div className="space-y-4">
@@ -77,6 +88,8 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
         onSeekTo={playback.seekTo}
         selectedPairId={selectedPairId}
         onSelectPairId={onSelectPairId}
+        selectedVoicePair={selectedVoicePair}
+        onSelectVoicePair={onSelectVoicePair}
         selectedFormat={selectedFormat}
         onSelectFormat={onSelectFormat}
         genState={genState}
@@ -84,6 +97,7 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
         error={error}
         episode={episode}
         onGenerate={onGenerate}
+        onResynthesize={onResynthesize}
         onUpdateDialogue={onUpdateDialogue}
       />
     </div>

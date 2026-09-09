@@ -5,30 +5,8 @@ import { parseGenerationControls } from "../lib/generation-controls.js";
 import { createJob, getJob, runJob } from "../lib/jobs.js";
 import { generateFlexReadLayers } from "../services/gemini.js";
 import { synthesizeBriefing, type NarratedAudio } from "../services/tts.js";
-import {
-  BRIEFING_VOICES,
-  DEFAULT_BRIEFING_VOICE_ID,
-  resolveBriefingVoice,
-} from "../services/voices.js";
 
 export const briefingRouter = Router();
-
-/**
- * Who narrates. Omitted keeps the voice the briefing already used, so an
- * existing caller hears no change.
- */
-function parseVoice(body: unknown): { ok: true; voiceName: string } | { ok: false; error: string } {
-  const requested = (body as { voice?: unknown } | null)?.voice ?? DEFAULT_BRIEFING_VOICE_ID;
-  if (typeof requested !== "string") {
-    return { ok: false, error: "voice must be a string" };
-  }
-  const voiceName = resolveBriefingVoice(requested);
-  if (!voiceName) {
-    const ids = BRIEFING_VOICES.map((voice) => voice.id).join(", ");
-    return { ok: false, error: `voice must be one of: ${ids}` };
-  }
-  return { ok: true, voiceName };
-}
 
 /**
  * Article in, sixty seconds of audio out. Reuses the summary60s that FlexRead
@@ -38,11 +16,6 @@ briefingRouter.post("/", (req, res) => {
   const parsed = parseArticleText(req.body);
   if (!parsed.ok) {
     return res.status(400).json({ error: parsed.error });
-  }
-
-  const voice = parseVoice(req.body);
-  if (!voice.ok) {
-    return res.status(400).json({ error: voice.error });
   }
 
   const controls = parseGenerationControls(req.body);
@@ -59,7 +32,7 @@ briefingRouter.post("/", (req, res) => {
     if (typeof summary !== "string" || summary.trim() === "") {
       throw new Error("FlexRead returned no summary60s to narrate");
     }
-    return synthesizeBriefing(summary, voice.voiceName);
+    return synthesizeBriefing(summary);
   });
 
   res

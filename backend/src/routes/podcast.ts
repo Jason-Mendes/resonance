@@ -3,6 +3,7 @@ import { Router } from "express";
 import { parseArticleText } from "../lib/articleText.js";
 import { ForbiddenTermsError, parseGenerationControls } from "../lib/generation-controls.js";
 import { generatePodcastScript } from "../services/gemini.js";
+import { resolveHostsForVoicePair } from "../services/tts-voices.js";
 
 export const podcastRouter = Router();
 
@@ -17,9 +18,12 @@ podcastRouter.post("/", async (req, res) => {
     return res.status(400).json({ error: controls.error });
   }
 
+  const voicePair = (req.body as { voicePair?: unknown })?.voicePair;
+  const hosts = resolveHostsForVoicePair(typeof voicePair === "string" ? voicePair : undefined);
+
   try {
-    const script = await generatePodcastScript(parsed.articleText, controls.controls);
-    res.json({ script });
+    const { topic, script } = await generatePodcastScript(parsed.articleText, controls.controls);
+    res.json({ topic: topic || "General", script, hosts });
   } catch (error) {
     // 422, not 400: the request was fine and the model would not comply. The
     // terms ship as a list so the editor's own chips can be marked, and they

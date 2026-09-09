@@ -5,8 +5,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { briefingRouter } from "./briefing.js";
 
 /**
- * Both the summary and the synthesis are mocked. What is under test is which
- * Cloud TTS voice name the route resolves and hands to synthesis.
+ * Both the summary and the synthesis are mocked. What is under test is that
+ * the route narrates the summary FlexRead already produced, rather than
+ * prompting a second time for words that would come back different.
  */
 const { generateFlexReadLayersMock, synthesizeBriefingMock } = vi.hoisted(() => ({
   generateFlexReadLayersMock: vi.fn(),
@@ -22,7 +23,7 @@ app.use("/api/briefing", briefingRouter);
 
 const article = { articleText: "An article worth narrating." };
 
-describe("POST /api/briefing voice selection", () => {
+describe("POST /api/briefing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     generateFlexReadLayersMock.mockResolvedValue({ summary60s: "A short summary." });
@@ -33,40 +34,21 @@ describe("POST /api/briefing voice selection", () => {
     });
   });
 
-  it("keeps the voice the briefing already used when voice is omitted", async () => {
-    await request(app).post("/api/briefing").send(article);
+  it("narrates the summary FlexRead produced", async () => {
+    const res = await request(app).post("/api/briefing").send(article);
 
+    expect(res.status).toBe(202);
     await vi.waitFor(() =>
-      expect(synthesizeBriefingMock).toHaveBeenCalledWith("A short summary.", "en-US-Studio-O"),
+      expect(synthesizeBriefingMock).toHaveBeenCalledWith("A short summary."),
     );
   });
 
-  it("resolves an id to its Cloud TTS name, across both tiers", async () => {
-    const cases: [string, string][] = [
-      ["studio-q", "en-US-Studio-Q"],
-      ["algieba", "en-US-Chirp3-HD-Algieba"],
-      ["aoede", "en-US-Chirp3-HD-Aoede"],
-    ];
+  it("fails the job rather than narrating nothing when there is no summary", async () => {
+    generateFlexReadLayersMock.mockResolvedValue({});
 
-    for (const [id, expected] of cases) {
-      synthesizeBriefingMock.mockClear();
-      await request(app)
-        .post("/api/briefing")
-        .send({ ...article, voice: id });
+    const res = await request(app).post("/api/briefing").send(article);
 
-      await vi.waitFor(() =>
-        expect(synthesizeBriefingMock).toHaveBeenCalledWith(expect.any(String), expected),
-      );
-    }
-  });
-
-  it("rejects an unknown voice instead of quietly narrating in the default", async () => {
-    const res = await request(app)
-      .post("/api/briefing")
-      .send({ ...article, voice: "morgan-freeman" });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain("voice must be one of");
-    expect(synthesizeBriefingMock).not.toHaveBeenCalled();
+    expect(res.status).toBe(202);
+    await vi.waitFor(() => expect(synthesizeBriefingMock).not.toHaveBeenCalled());
   });
 });

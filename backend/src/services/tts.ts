@@ -1,90 +1,49 @@
-/**
- * Cloud Text-to-Speech. Authenticates by Application Default Credentials, so
- * there is no API key: the organisation policy on the hackathon project
- * disallows them. Locally that means `gcloud auth application-default login`;
- * on Cloud Run the service account is picked up automatically.
- */
 import textToSpeech from "@google-cloud/text-to-speech";
 
 import { TransientError } from "../lib/errors.js";
 import { getVertexClient } from "../lib/vertex.js";
 
+import { createChunkCacheKey, getChunkCache, setChunkCache } from "./tts-cache.js";
+import { chunkBySpeakerPairs, escapeForSsml, pcmToWav } from "./tts-pcm.js";
+import {
+  DEFAULT_DIALOGUE_VOICE,
+  resolveDialogueVoiceMap,
+  type VoicePairType,
+} from "./tts-voices.js";
+
+import type { NarratedAudio, RenderedAudio, ScriptTurn } from "./tts-types.js";
+
+export type { ScriptTurn, RenderedAudio, NarratedAudio };
+
 const client = new textToSpeech.TextToSpeechClient();
-
-/** One line of dialogue, matching what generatePodcastScript returns. */
-export interface ScriptTurn {
-  speaker: string;
-  text: string;
-}
-
-// Studio voices: Google's broadcast tier, chosen over Neural2 because the
-// Neural2 output read as obviously synthetic. Studio costs more per character,
-// so the turn caps in routes/tts.ts matter more than they did.
-// HostA is the analytical host, HostB the curious one, per services/gemini.ts.
-const VOICE_BY_SPEAKER: Record<string, string> = {
-  HostA: "en-US-Studio-Q",
-  HostB: "en-US-Studio-O",
-};
-const FALLBACK_VOICE = "en-US-Studio-Q";
+// Pro, not the flash variant. Flash renders the same script in roughly half
+// the time, but on a side-by-side listen its male voice is raspier and more
+// obviously synthetic. Parallel chunking already holds render time near a
+// minute at any script length, so the speed Flash buys is not worth the voice.
+const DIALOGUE_MODEL = "gemini-2.5-pro-preview-tts";
+const BRIEFING_VOICE = "en-US-Studio-O";
 const LANGUAGE_CODE = "en-US";
-
-// 48kHz rather than the 24kHz default. Slightly larger files, noticeably less
-// of the tinny quality that makes synthesis obvious.
 const SAMPLE_RATE_HZ = 48_000;
-
-// A hair under natural pace. Podcast hosts do not read at full speed.
 const SPEAKING_RATE = 0.96;
-
-// Silence after each turn. Zero gap between speakers is one of the strongest
-// tells that audio was machine-assembled.
 const PAUSE_AFTER_TURN_MS = 450;
 
-/**
- * The model writes plain prose, which may contain characters that are markup
- * in SSML. Unescaped, an ampersand or angle bracket makes the whole request
- * invalid rather than merely mispronounced.
- */
-function escapeForSsml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
 async function synthesizeTurn(turn: ScriptTurn, voiceOverride?: string): Promise<Buffer> {
-  // The pause lives inside this turn's audio, so the gap survives however the
-  // segments are later joined.
   const ssml = `<speak>${escapeForSsml(turn.text)}<break time="${PAUSE_AFTER_TURN_MS}ms"/></speak>`;
-
   const [response] = await client.synthesizeSpeech({
     input: { ssml },
-    voice: {
-      languageCode: LANGUAGE_CODE,
-      name: voiceOverride ?? VOICE_BY_SPEAKER[turn.speaker] ?? FALLBACK_VOICE,
-    },
+    voice: { languageCode: LANGUAGE_CODE, name: voiceOverride ?? BRIEFING_VOICE },
     audioConfig: {
       audioEncoding: "MP3",
       sampleRateHertz: SAMPLE_RATE_HZ,
       speakingRate: SPEAKING_RATE,
     },
   });
-
-  const audio = response.audioContent;
-  if (!audio) {
+  if (!response.audioContent) {
     throw new Error(`Cloud TTS returned no audio for speaker ${turn.speaker}`);
   }
-  return Buffer.from(audio);
+  return Buffer.from(response.audioContent);
 }
 
-/**
- * Renders a whole script to a single MP3.
- *
- * Turns are synthesised sequentially rather than in parallel. Order is the
- * point of a dialogue, and firing dozens of concurrent requests is the fastest
- * way to hit the per-minute quota mid-episode.
- */
 export async function synthesizeScript(script: ScriptTurn[]): Promise<Buffer> {
   const parts: Buffer[] = [];
   for (const turn of script) {
@@ -101,94 +60,6 @@ export async function synthesizeScript(script: ScriptTurn[]): Promise<Buffer> {
 // conversational timing comes from. This is the path the podcast uses; the
 // Cloud TTS path above stays for single-voice work like the audio briefing.
 
-// Pro, not the flash variant. Flash renders the same script in roughly half
-// the time, but on a side-by-side listen its male voice is raspier and more
-// obviously synthetic. Parallel chunking already holds render time near a
-// minute at any script length, so the speed Flash buys is not worth the voice.
-const DIALOGUE_MODEL = "gemini-2.5-pro-preview-tts";
-
-// Gemini returns headerless 16-bit mono PCM at this rate.
-const PCM_SAMPLE_RATE_HZ = 24_000;
-const PCM_BITS_PER_SAMPLE = 16;
-const PCM_CHANNELS = 1;
-const WAV_HEADER_BYTES = 44;
-
-// Used if the model invents a speaker the mapping does not cover.
-const DEFAULT_DIALOGUE_VOICE = "Algieba";
-
-// Turns per parallel request. Wall time is set by the slowest chunk, so
-// smaller is faster, and more chunks also make the reported progress finer.
-// Two is the floor: multiSpeakerVoiceConfig needs both speakers in a chunk,
-// and two alternating turns is exactly that. Measured on a 7-turn script,
-// two per chunk rendered in 56 seconds against 62 for three.
-const TURNS_PER_CHUNK = 2;
-
-/**
- * Splits a script into pieces that each still contain both speakers.
- * multiSpeakerVoiceConfig rejects a request whose transcript names only one of
- * the speakers it declares, so a trailing single-speaker chunk is folded back
- * into the one before it.
- */
-export function chunkBySpeakerPairs(script: ScriptTurn[]): ScriptTurn[][] {
-  const chunks: ScriptTurn[][] = [];
-  let current: ScriptTurn[] = [];
-
-  // A chunk closes only once it holds both speakers, so a host taking two
-  // turns in a row widens that chunk rather than producing a one-voice request.
-  for (const turn of script) {
-    current.push(turn);
-    const bothSpeakers = new Set(current.map((each) => each.speaker)).size >= 2;
-    if (current.length >= TURNS_PER_CHUNK && bothSpeakers) {
-      chunks.push(current);
-      current = [];
-    }
-  }
-
-  // Whatever is left cannot stand alone: it is short, or single-voiced, or both.
-  if (current.length > 0) {
-    const previous = chunks[chunks.length - 1];
-    if (previous) previous.push(...current);
-    else chunks.push(current);
-  }
-  return chunks;
-}
-
-/** Wraps raw PCM in a WAV container so browsers and players can read it. */
-function pcmToWav(pcm: Buffer): Buffer {
-  const byteRate = (PCM_SAMPLE_RATE_HZ * PCM_CHANNELS * PCM_BITS_PER_SAMPLE) / 8;
-  const blockAlign = (PCM_CHANNELS * PCM_BITS_PER_SAMPLE) / 8;
-  const header = Buffer.alloc(WAV_HEADER_BYTES);
-  header.write("RIFF", 0);
-  header.writeUInt32LE(36 + pcm.length, 4);
-  header.write("WAVE", 8);
-  header.write("fmt ", 12);
-  header.writeUInt32LE(16, 16); // fmt chunk size
-  header.writeUInt16LE(1, 20); // 1 = uncompressed PCM
-  header.writeUInt16LE(PCM_CHANNELS, 22);
-  header.writeUInt32LE(PCM_SAMPLE_RATE_HZ, 24);
-  header.writeUInt32LE(byteRate, 28);
-  header.writeUInt16LE(blockAlign, 32);
-  header.writeUInt16LE(PCM_BITS_PER_SAMPLE, 34);
-  header.write("data", 36);
-  header.writeUInt32LE(pcm.length, 40);
-  return Buffer.concat([header, pcm]);
-}
-
-/** Audio plus the content type it should be served with. */
-export interface RenderedAudio {
-  audio: Buffer;
-  mimeType: string;
-}
-
-/**
- * A briefing carries the words it narrates. The model writes the summary
- * during the render, so this is the only place that text exists; asking for it
- * separately would mean a second call that produced different words.
- */
-export interface NarratedAudio extends RenderedAudio {
-  text: string;
-}
-
 // Chunks render in parallel, so one refusal from an overloaded model would
 // otherwise throw away every other chunk's finished audio and fail the whole
 // episode. Retrying the one chunk costs seconds; re-rendering costs a minute.
@@ -203,19 +74,33 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(
 /** Synthesises one chunk, returning raw PCM so chunks can be joined. */
 async function synthesizeChunk(
   turns: ScriptTurn[],
-  voiceBySpeaker: Record<string, string>,
   delivery: string,
+  voicePair?: VoicePairType,
 ): Promise<Buffer> {
   const transcript = turns.map((turn) => `${turn.speaker}: ${turn.text}`).join("\n");
+  const voiceMap = resolveDialogueVoiceMap(voicePair);
+  const uniqueSpeakers = [...new Set(turns.map((turn) => turn.speaker))];
 
-  const speakerVoiceConfigs = [...new Set(turns.map((turn) => turn.speaker))].map((speaker) => ({
+  const speakerVoiceConfigs = uniqueSpeakers.map((speaker) => ({
     speaker,
     voiceConfig: {
       prebuiltVoiceConfig: {
-        voiceName: voiceBySpeaker[speaker] ?? DEFAULT_DIALOGUE_VOICE,
+        voiceName: voiceMap[speaker] ?? DEFAULT_DIALOGUE_VOICE,
       },
     },
   }));
+
+  const firstSpeaker = uniqueSpeakers[0] ?? "HostA";
+  const speechConfig =
+    uniqueSpeakers.length > 1
+      ? { multiSpeakerVoiceConfig: { speakerVoiceConfigs } }
+      : {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: voiceMap[firstSpeaker] ?? DEFAULT_DIALOGUE_VOICE,
+            },
+          },
+        };
 
   const response = await getVertexClient().models.generateContent({
     model: DIALOGUE_MODEL,
@@ -231,7 +116,7 @@ async function synthesizeChunk(
     ],
     config: {
       responseModalities: ["AUDIO"],
-      speechConfig: { multiSpeakerVoiceConfig: { speakerVoiceConfigs } },
+      speechConfig,
     },
   });
 
@@ -252,14 +137,14 @@ async function synthesizeChunk(
  */
 async function synthesizeChunkWithRetry(
   turns: ScriptTurn[],
-  voiceBySpeaker: Record<string, string>,
   delivery: string,
+  voicePair?: VoicePairType,
 ): Promise<Buffer> {
   let lastError: unknown;
 
   for (let attempt = 0; attempt < CHUNK_ATTEMPTS; attempt += 1) {
     try {
-      return await synthesizeChunk(turns, voiceBySpeaker, delivery);
+      return await synthesizeChunk(turns, delivery, voicePair);
     } catch (error) {
       lastError = error;
       if (attempt < CHUNK_ATTEMPTS - 1) await wait(RETRY_BASE_MS * 2 ** attempt);
@@ -285,18 +170,23 @@ async function synthesizeChunkWithRetry(
  */
 export async function synthesizeDialogue(
   script: ScriptTurn[],
-  voiceBySpeaker: Record<string, string>,
   delivery: string,
+  voicePair?: VoicePairType,
   reportProgress?: (fraction: number) => void,
 ): Promise<RenderedAudio> {
   const parts = chunkBySpeakerPairs(script);
-
-  // Chunks finish out of order, so progress counts completions rather than
-  // tracking any one chunk's position.
   let done = 0;
   const chunks = await Promise.all(
     parts.map(async (part) => {
-      const audio = await synthesizeChunkWithRetry(part, voiceBySpeaker, delivery);
+      const key = createChunkCacheKey(part, delivery, voicePair);
+      const cached = getChunkCache(key);
+      if (cached) {
+        done += 1;
+        reportProgress?.(done / parts.length);
+        return cached;
+      }
+      const audio = await synthesizeChunkWithRetry(part, delivery, voicePair);
+      setChunkCache(key, audio);
       done += 1;
       reportProgress?.(done / parts.length);
       return audio;
@@ -311,7 +201,7 @@ export async function synthesizeDialogue(
  * multi-speaker model to coordinate, and Cloud TTS Studio is the better fit:
  * it is generally available rather than preview, and cheaper per run.
  */
-export async function synthesizeBriefing(text: string, voiceName: string): Promise<NarratedAudio> {
-  const audio = await synthesizeTurn({ speaker: "__briefing", text }, voiceName);
+export async function synthesizeBriefing(text: string): Promise<NarratedAudio> {
+  const audio = await synthesizeTurn({ speaker: "__briefing", text }, BRIEFING_VOICE);
   return { audio, mimeType: "audio/mpeg", text };
 }

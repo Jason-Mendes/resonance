@@ -1,7 +1,3 @@
-/**
- * Turning an article into a finished episode. Kept out of the hook so that one
- * owns React state while this owns the pipeline, and each stays readable.
- */
 import { HOST_PAIR_PRESETS } from "@/constants/sample-podcast-hosts";
 import {
   fetchReadingLayers,
@@ -14,68 +10,64 @@ import {
 import { BackendScriptTurn, toDialogueTurns } from "@/lib/podcast-script";
 import { extractWaveform } from "@/lib/waveform";
 import { Article } from "@/types/article";
-import { PodcastEpisode, PodcastFormat } from "@/types/podcast";
+import { PodcastEpisode, PodcastFormat, PodcastHost, VoicePair } from "@/types/podcast";
 
 const TITLE_MAX_CHARS = 48;
 const TRAILING_TURN_SECONDS = 20;
 
-/**
- * The bar between the script landing and the audio finishing. Render progress
- * is a real fraction of chunks completed, mapped onto what is left of the bar.
- */
 export const renderProgressToBar = (fraction: number): number =>
   Math.round(SCRIPT_DONE_PROGRESS + fraction * (100 - SCRIPT_DONE_PROGRESS));
 
-/** Everything a production needs. One object, since five positional arguments
- *  stopped reading as anything at the call site. */
 export interface ProductionRequest {
   article: Article;
   pairId: string;
   format: PodcastFormat;
-  /** Called as soon as there is a transcript worth showing. */
+  voicePair?: VoicePair;
   onReady: (episode: PodcastEpisode) => void;
-  /** Chunks completed, 0 to 1. A summary has no chunks to report. */
   onRenderProgress: (fraction: number) => void;
 }
 
-const buildEpisode = (
-  article: Article,
-  script: BackendScriptTurn[],
-  pairId: string,
-  format: PodcastFormat,
-): PodcastEpisode => {
+interface BuildEpisodeInput {
+  article: Article;
+  script: BackendScriptTurn[];
+  pairId: string;
+  format: PodcastFormat;
+  customHosts?: PodcastHost[];
+  topic?: string;
+}
+
+const buildEpisode = ({
+  article,
+  script,
+  pairId,
+  format,
+  customHosts,
+  topic,
+}: BuildEpisodeInput): PodcastEpisode => {
   const preset = HOST_PAIR_PRESETS.find((p) => p.id === pairId) ?? HOST_PAIR_PRESETS[0];
-  const dialogue = toDialogueTurns(script, preset.hosts);
+  const hosts = customHosts && customHosts.length > 0 ? customHosts : preset.hosts;
+  const dialogue = toDialogueTurns(script, hosts);
   const lastTurn = dialogue[dialogue.length - 1];
-  // Derived from the script's own estimated timings rather than a fixed number,
-  // so the duration shown moves with the content.
   const durationSeconds = lastTurn ? lastTurn.timeSeconds + TRAILING_TURN_SECONDS : 0;
 
   return {
     id: `pod-${article.id}`,
     articleId: article.id,
     showName: "Analysis",
+    topic: topic || "General",
     title: article.title.slice(0, TITLE_MAX_CHARS),
     subtitle: article.subtitle,
-    hosts: preset.hosts,
+    hosts,
     format,
     durationSeconds,
-    // Both filled in once the render completes.
     waveform: [],
     audioUrl: null,
     dialogue,
-    // Filled from the reading layers once they arrive. The article's own
-    // standfirst used to sit here, which repeated text already on screen.
     showNotes: "",
     keyTakeaways: [],
   };
 };
 
-/**
- * A summary is one job that writes and narrates in a single step, so unlike a
- * podcast there is no intermediate script to publish partway through. The
- * narration becomes a single turn, which is what the transcript renders.
- */
 const produceSummary = async ({
   article,
   pairId,
@@ -85,44 +77,69 @@ const produceSummary = async ({
     renderSummary(article.id),
     fetchReadingLayers(article.id).catch(() => null),
   ]);
-  onReady(buildEpisode(article, [{ speaker: "HostA", text }], pairId, "summary"));
+  onReady(
+    buildEpisode({
+      article,
+      script: [{ speaker: "HostA", text }],
+      pairId,
+      format: "summary",
+    }),
+  );
 
   const waveform = await extractWaveform(audioUrl).catch(() => []);
   return { audioUrl, waveform, notes };
 };
 
-/** Script, then audio, then the waveform read off that audio. */
 const produceEpisode = async ({
   article,
   pairId,
   format,
+  voicePair,
   onReady,
   onRenderProgress,
 }: ProductionRequest): Promise<ProducedAudio> => {
-  const script = await fetchScript(article.id);
+  const { script, hosts, topic } = await fetchScript(article.id, voicePair);
   if (script.length === 0) {
     throw new Error("The generated script came back empty");
   }
 
-  // The transcript is published as soon as it exists, so it is readable while
-  // the voices are still being synthesised rather than only afterwards.
-  onReady(buildEpisode(article, script, pairId, format));
+  const mappedHosts: PodcastHost[] | undefined = hosts?.map((h) => ({
+    id: h.id,
+    name: h.name,
+    role: h.role,
+    accent: "Standard Broadcast",
+    voiceTag: h.voice,
+  }));
 
-  // Notes are written while the audio renders. Sequentially they would add
-  // their own wait to a step that already takes a minute.
+  onReady(
+    buildEpisode({
+      article,
+      script,
+      pairId,
+      format,
+      customHosts: mappedHosts,
+      topic,
+    }),
+  );
+
   const [audioUrl, notes] = await Promise.all([
-    renderAudio(script, onRenderProgress),
+    renderAudio(script, onRenderProgress, voicePair),
     fetchReadingLayers(article.id).catch(() => null),
   ]);
   const waveform = await extractWaveform(audioUrl).catch(() => []);
   return { audioUrl, waveform, notes };
 };
 
-/**
- * Merges a finished production onto the episode already on screen, rather than
- * replacing it, so transcript edits made while the audio rendered survive.
- * Notes fall back to what is there, since a failed notes call resolves to null.
- */
+export const resynthesizeScriptAudio = async (
+  script: BackendScriptTurn[],
+  voicePair?: VoicePair,
+  onProgress?: (fraction: number) => void,
+): Promise<{ audioUrl: string; waveform: number[] }> => {
+  const audioUrl = await renderAudio(script, onProgress, voicePair);
+  const waveform = await extractWaveform(audioUrl).catch(() => []);
+  return { audioUrl, waveform };
+};
+
 export const applyProduction =
   ({ audioUrl, waveform, notes }: ProducedAudio) =>
   (prev: PodcastEpisode | null): PodcastEpisode | null =>
@@ -136,6 +153,5 @@ export const applyProduction =
         }
       : prev;
 
-/** Picks the pipeline the chosen format needs. */
 export const runProduction = (request: ProductionRequest): Promise<ProducedAudio> =>
   request.format === "summary" ? produceSummary(request) : produceEpisode(request);
