@@ -66,7 +66,7 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
     <div className="space-y-4">
       <PodcastStudioHeader />
 
-      {episode && <PodcastPlayerCard episode={episode} dialogue={dialogue} playback={playback} />}
+      {episode && <PodcastPlayerCard episode={episode} playback={playback} />}
 
       <Tabs items={SIDEBAR_TABS} activeId={activeTab} onChange={setActiveTab} />
 
