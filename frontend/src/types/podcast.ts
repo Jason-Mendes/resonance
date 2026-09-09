@@ -39,6 +39,7 @@ export interface PodcastEpisode {
   /** Null until the render finishes; the player shows a pending state. */
   audioUrl: string | null;
   dialogue: PodcastDialogueTurn[];
+  /** Empty until the reading layers arrive; the notes tab shows a pending state. */
   showNotes: string;
   keyTakeaways: string[];
 }
