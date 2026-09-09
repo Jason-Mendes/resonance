@@ -17,7 +17,6 @@ const SPOKEN_SECTION_TYPES = new Set<ArticleSection["type"]>([
   "question",
   "answer",
   "key-points",
-  "data-callout",
   "infobox",
 ]);
 

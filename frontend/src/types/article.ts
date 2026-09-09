@@ -5,17 +5,9 @@ export type ArticleSectionType =
   | "quote"
   | "image"
   | "key-points"
-  | "data-callout"
   | "question"
   | "answer"
   | "infobox";
-
-export interface ArticleDataMetric {
-  label: string;
-  value: string;
-  change?: string;
-  context?: string;
-}
 
 export interface ArticleSection {
   id: string;
@@ -26,7 +18,6 @@ export interface ArticleSection {
   quoteRole?: string;
   imageUrl?: string;
   imageCaption?: string;
-  dataMetric?: ArticleDataMetric;
 }
 
 export interface ArticleAuthor {
@@ -70,5 +61,3 @@ export interface ArticleDraft {
   authorName?: string;
   heroImageUrl?: string;
 }
-
-export type ArticleInputMode = "url" | "text";

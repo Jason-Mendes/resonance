@@ -5,7 +5,6 @@ export * from "./ArticleBody";
 export * from "./ArticleSectionRenderer";
 export * from "./ArticleTextSection";
 export * from "./ArticleQuoteSection";
-export * from "./ArticleDataCallout";
 export * from "./ArticleKeyPoints";
 export * from "./ArticleImageSection";
 export * from "./ArticleViewer";
