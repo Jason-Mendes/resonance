@@ -1,44 +1,41 @@
-import { Download, Rss, Check } from "lucide-react";
+import { Download } from "lucide-react";
 import * as React from "react";
 
-import { Button } from "@/components/ui/Button";
+import { buttonVariants } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 export interface PodcastShowNotesActionsProps {
-  copiedFeed: boolean;
-  isDownloading: boolean;
-  onCopyFeed: () => void;
-  onDownload: () => void;
+  /** Null while the audio is still rendering, which disables the download. */
+  audioUrl: string | null;
+  fileName: string;
 }
 
-export const PodcastShowNotesActions: React.FC<PodcastShowNotesActionsProps> = ({
-  copiedFeed,
-  isDownloading,
-  onCopyFeed,
-  onDownload,
-}) => (
-  <div className="grid grid-cols-2 gap-2">
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={onCopyFeed}
-      className="h-8 gap-1.5 text-xs border-zinc-200 hover:border-black rounded-none"
-    >
-      {copiedFeed ? (
-        <Check className="h-3 w-3 text-black" />
-      ) : (
-        <Rss className="h-3 w-3 text-black" />
-      )}
-      <span>{copiedFeed ? "Copied" : "RSS Feed"}</span>
-    </Button>
+const BUTTON_CLASS = "w-full gap-1.5 bg-black hover:bg-zinc-800 text-white";
 
-    <Button
-      size="sm"
-      onClick={onDownload}
-      disabled={isDownloading}
-      className="h-8 gap-1.5 text-xs bg-black hover:bg-zinc-800 text-white rounded-none"
+/**
+ * An anchor carrying `download`, so the browser saves the file itself. Styled
+ * with buttonVariants rather than the Button component, which renders a
+ * <button> and cannot become a link.
+ */
+export const PodcastShowNotesActions: React.FC<PodcastShowNotesActionsProps> = ({
+  audioUrl,
+  fileName,
+}) =>
+  audioUrl ? (
+    <a
+      href={audioUrl}
+      download={fileName}
+      className={cn(buttonVariants({ size: "sm" }), BUTTON_CLASS)}
     >
       <Download className="h-3 w-3" />
-      <span>{isDownloading ? "Exporting..." : "Download MP3"}</span>
-    </Button>
-  </div>
-);
+      <span>Download audio</span>
+    </a>
+  ) : (
+    <span
+      aria-disabled
+      className={cn(buttonVariants({ size: "sm" }), BUTTON_CLASS, "opacity-40 cursor-default")}
+    >
+      <Download className="h-3 w-3" />
+      <span>Audio still rendering</span>
+    </span>
+  );
