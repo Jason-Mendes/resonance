@@ -106,13 +106,6 @@ export async function synthesizeScript(script: ScriptTurn[]): Promise<Buffer> {
 // minute at any script length, so the speed Flash buys is not worth the voice.
 const DIALOGUE_MODEL = "gemini-2.5-pro-preview-tts";
 
-// Chosen by listening to side-by-side samples. Voice quality varies audibly
-// within the family and is not documented, so this pairing is empirical.
-const DIALOGUE_VOICE_BY_SPEAKER: Record<string, string> = {
-  HostA: "Algieba",
-  HostB: "Aoede",
-};
-
 // Gemini returns headerless 16-bit mono PCM at this rate.
 const PCM_SAMPLE_RATE_HZ = 24_000;
 const PCM_BITS_PER_SAMPLE = 16;
@@ -187,14 +180,17 @@ export interface NarratedAudio extends RenderedAudio {
 }
 
 /** Synthesises one chunk, returning raw PCM so chunks can be joined. */
-async function synthesizeChunk(turns: ScriptTurn[]): Promise<Buffer> {
+async function synthesizeChunk(
+  turns: ScriptTurn[],
+  voiceBySpeaker: Record<string, string>,
+): Promise<Buffer> {
   const transcript = turns.map((turn) => `${turn.speaker}: ${turn.text}`).join("\n");
 
   const speakerVoiceConfigs = [...new Set(turns.map((turn) => turn.speaker))].map((speaker) => ({
     speaker,
     voiceConfig: {
       prebuiltVoiceConfig: {
-        voiceName: DIALOGUE_VOICE_BY_SPEAKER[speaker] ?? DEFAULT_DIALOGUE_VOICE,
+        voiceName: voiceBySpeaker[speaker] ?? DEFAULT_DIALOGUE_VOICE,
       },
     },
   }));
@@ -237,6 +233,7 @@ async function synthesizeChunk(turns: ScriptTurn[]): Promise<Buffer> {
  */
 export async function synthesizeDialogue(
   script: ScriptTurn[],
+  voiceBySpeaker: Record<string, string>,
   reportProgress?: (fraction: number) => void,
 ): Promise<RenderedAudio> {
   const parts = chunkBySpeakerPairs(script);
@@ -246,7 +243,7 @@ export async function synthesizeDialogue(
   let done = 0;
   const chunks = await Promise.all(
     parts.map(async (part) => {
-      const audio = await synthesizeChunk(part);
+      const audio = await synthesizeChunk(part, voiceBySpeaker);
       done += 1;
       reportProgress?.(done / parts.length);
       return audio;
@@ -256,15 +253,12 @@ export async function synthesizeDialogue(
   return { audio: pcmToWav(Buffer.concat(chunks)), mimeType: "audio/wav" };
 }
 
-// The voice from the dialogue pairing that read most naturally on its own.
-const BRIEFING_VOICE = "en-US-Studio-O";
-
 /**
  * Renders a single-voice briefing. One speaker, so there is no dialogue for a
  * multi-speaker model to coordinate, and Cloud TTS Studio is the better fit:
  * it is generally available rather than preview, and cheaper per run.
  */
-export async function synthesizeBriefing(text: string): Promise<NarratedAudio> {
-  const audio = await synthesizeTurn({ speaker: "__briefing", text }, BRIEFING_VOICE);
+export async function synthesizeBriefing(text: string, voiceName: string): Promise<NarratedAudio> {
+  const audio = await synthesizeTurn({ speaker: "__briefing", text }, voiceName);
   return { audio, mimeType: "audio/mpeg", text };
 }

@@ -2,6 +2,13 @@ import { Router } from "express";
 
 import { createJob, getJob, runJob } from "../lib/jobs.js";
 import { synthesizeDialogue, type RenderedAudio, type ScriptTurn } from "../services/tts.js";
+import {
+  DEFAULT_PAIRING,
+  HOST_PAIRINGS,
+  isHostPairing,
+  resolvePairing,
+  type HostPairing,
+} from "../services/voices.js";
 
 export const ttsRouter = Router();
 
@@ -38,6 +45,23 @@ function parseScript(
   return { ok: true, script: turns };
 }
 
+/**
+ * Which two voices read the script. Omitted keeps what the podcast already
+ * sounded like, so an existing caller is unaffected by this field existing.
+ */
+function parseHosts(
+  body: unknown,
+): { ok: true; pairing: HostPairing } | { ok: false; error: string } {
+  const hosts = (body as { hosts?: unknown } | null)?.hosts;
+  if (hosts === undefined) {
+    return { ok: true, pairing: DEFAULT_PAIRING };
+  }
+  if (!isHostPairing(hosts)) {
+    return { ok: false, error: `hosts must be one of: ${HOST_PAIRINGS.join(", ")}` };
+  }
+  return { ok: true, pairing: hosts };
+}
+
 /** Submit a script. Returns immediately with a job id; synthesis runs after. */
 ttsRouter.post("/", (req, res) => {
   const parsed = parseScript(req.body);
@@ -45,8 +69,14 @@ ttsRouter.post("/", (req, res) => {
     return res.status(400).json({ error: parsed.error });
   }
 
+  const hosts = parseHosts(req.body);
+  if (!hosts.ok) {
+    return res.status(400).json({ error: hosts.error });
+  }
+
+  const voices = resolvePairing(hosts.pairing);
   const job = createJob<RenderedAudio>();
-  runJob(job, (reportProgress) => synthesizeDialogue(parsed.script, reportProgress));
+  runJob(job, (reportProgress) => synthesizeDialogue(parsed.script, voices, reportProgress));
 
   // 202: accepted, not finished. Location points at the status endpoint.
   res.status(202).location(`/api/tts/jobs/${job.id}`).json({ jobId: job.id, status: job.status });

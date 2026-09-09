@@ -34,15 +34,45 @@ request that needed it rather than the whole backend.
 
 ## Endpoints
 
-| Method | Path                                 | Notes                                                      |
-| ------ | ------------------------------------ | ---------------------------------------------------------- |
-| GET    | `/health`                            | Outside the rate limiter, for uptime probes                |
-| POST   | `/api/flexread`                      | Body `{ articleText: string }`, max 50,000 characters      |
-| POST   | `/api/podcast`                       | Same body. Returns `{ script: [{ speaker, text }] }`       |
-| POST   | `/api/tts`                           | Body `{ script }`. Returns `202` and a job id              |
-| POST   | `/api/briefing`                      | Same body as flexread. Article in, 60 seconds of audio out |
-| GET    | `/api/{tts,briefing}/jobs/:id`       | Job status. Poll until `done` or `failed`                  |
-| GET    | `/api/{tts,briefing}/jobs/:id/audio` | The audio. `409` until the job is done                     |
+| Method | Path                                 | Notes                                                   |
+| ------ | ------------------------------------ | ------------------------------------------------------- |
+| GET    | `/health`                            | Outside the rate limiter, for uptime probes             |
+| POST   | `/api/flexread`                      | Body `{ articleText: string }`, max 50,000 characters   |
+| POST   | `/api/podcast`                       | Same body. Returns `{ script: [{ speaker, text }] }`    |
+| POST   | `/api/tts`                           | Body `{ script, hosts? }`. Returns `202` and a job id   |
+| POST   | `/api/briefing`                      | Body `{ articleText, voice? }`. 60 seconds of audio out |
+| GET    | `/api/voices`                        | The voice catalogue. A constant read, no model call     |
+| GET    | `/api/{tts,briefing}/jobs/:id`       | Job status. Poll until `done` or `failed`               |
+| GET    | `/api/{tts,briefing}/jobs/:id/audio` | The audio. `409` until the job is done                  |
+
+## Choosing voices
+
+`GET /api/voices` returns everything a UI needs, so no voice id is hardcoded in
+two places. Both selection fields are optional and omitting them reproduces
+exactly what the product sounded like before they existed.
+
+`POST /api/tts` takes `hosts`, one of `male-female` (the default),
+`male-male` or `female-female`. Each pairing uses two different voices even
+when they share a gender: `multiSpeakerVoiceConfig` declares one voice per
+speaker, so giving both hosts the same one makes them indistinguishable.
+
+`POST /api/briefing` takes `voice`, one of `studio-o` (the default),
+`studio-q`, `aoede` or `algieba`. An unknown value on either endpoint is a
+`400` listing the valid options, rather than a silent fall back to the default.
+
+Two things worth knowing about the catalogue:
+
+- Gemini multi-speaker TTS and Cloud TTS Chirp3-HD share a voice roster. The
+  Gemini voice `Algieba` is the same voice as `en-US-Chirp3-HD-Algieba`, which
+  is why one table can drive both features and why the two added briefing
+  voices are the podcast hosts rather than two more strangers.
+- Studio has only two en-US voices, `Studio-O` and `Studio-Q`, and neither is
+  in the Gemini roster. That is why briefing voices carry no Gemini name and
+  the types stop one being used as a podcast host.
+
+Only `Algieba` and `Aoede` have actually been listened to. `Charon` and
+`Despina` were added so the same-gender pairings have a second voice and are
+still unvetted.
 
 `/api` is rate limited to 60 requests per IP per 15 minutes. The endpoint is
 unauthenticated, so that limit is what stops an open URL from draining the

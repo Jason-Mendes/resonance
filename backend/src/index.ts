@@ -10,6 +10,7 @@ import { flexreadRouter } from "./routes/flexread.js";
 import { podcastRouter } from "./routes/podcast.js";
 import { socialRouter } from "./routes/social.js";
 import { ttsRouter } from "./routes/tts.js";
+import { voicesRouter } from "./routes/voices.js";
 
 // Comma-separated list of origins allowed to call this API. Required rather
 // than defaulted, so a permissive setting can never reach production by
@@ -58,6 +59,7 @@ app.use("/api/podcast", podcastRouter);
 app.use("/api/tts", ttsRouter);
 app.use("/api/briefing", briefingRouter);
 app.use("/api/social", socialRouter);
+app.use("/api/voices", voicesRouter);
 
 // Set up WebSocket server for Gemini Live
 // const wss = new WebSocketServer({ server, path: '/api/voice-chat' });
