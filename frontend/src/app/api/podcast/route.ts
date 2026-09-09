@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { articleToText } from "@/lib/article-text";
+import { fetchArticle } from "@/lib/articles";
 import { BackendError, postToBackend } from "@/lib/backend";
-import { getServerArticleById } from "@/lib/server-articles";
 
 /**
  * Proxies script generation to the Express backend. The browser posts an
@@ -22,12 +22,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "articleId must be a non-empty string" }, { status: 400 });
   }
 
-  const article = getServerArticleById(articleId);
-  if (!article) {
-    return NextResponse.json({ error: "Article not found" }, { status: 404 });
-  }
-
   try {
+    const article = await fetchArticle(articleId);
+    if (!article) {
+      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+    }
+
     const { script } = await postToBackend<BackendScript>("/api/podcast", {
       articleText: articleToText(article),
     });

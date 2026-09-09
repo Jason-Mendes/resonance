@@ -51,56 +51,24 @@ export interface Article {
   sourceUrl?: string;
   readTimeMinutes: number;
   wordCount: number;
-  heroImage: ArticleHeroImage;
+  /** Absent on articles an editor added without one. */
+  heroImage?: ArticleHeroImage;
   sections: ArticleSection[];
   tags: string[];
   summaryBullets?: string[];
 }
 
+/** What the article list returns: everything except the body. */
+export type ArticleSummary = Omit<Article, "sections" | "summaryBullets" | "sourceUrl">;
+
+/** The fields the editor form collects. The backend builds the article. */
+export interface ArticleDraft {
+  title: string;
+  body: string;
+  subtitle?: string;
+  kicker?: string;
+  authorName?: string;
+  heroImageUrl?: string;
+}
+
 export type ArticleInputMode = "url" | "text";
-
-export interface NzzArticleImage {
-  url: string;
-  caption?: string;
-  credit?: string;
-  width?: number;
-  height?: number;
-}
-
-export interface NzzArticleBodyItem {
-  type: string;
-  text?: string;
-  url?: string;
-  caption?: string;
-  credit?: string;
-  width?: number;
-  height?: number;
-  author?: string;
-  title?: string;
-  items?: string[];
-}
-
-export interface NzzRawArticle {
-  document_id: number | string;
-  nzz_id?: string;
-  url?: string;
-  language?: string;
-  section?: string;
-  ressort_path?: string;
-  published_at: string;
-  last_updated?: string;
-  headline: string;
-  lead?: string;
-  author_line?: string;
-  authors?: string[];
-  reading_time_seconds?: number;
-  word_count?: number;
-  character_count?: number;
-  seo_title?: string;
-  social_title?: string;
-  summary_bullets_en?: string[];
-  tags?: string[];
-  teaser_image?: NzzArticleImage;
-  body?: NzzArticleBodyItem[];
-  body_text?: string;
-}
