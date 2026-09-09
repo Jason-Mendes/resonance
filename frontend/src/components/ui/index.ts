@@ -7,4 +7,5 @@ export * from "./Tabs";
 export * from "./Progress";
 export * from "./ActionButton";
 export * from "./ErrorState";
+export * from "./LoadingState";
 export * from "./FormField";
