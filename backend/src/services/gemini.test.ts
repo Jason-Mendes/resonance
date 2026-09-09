@@ -66,3 +66,69 @@ describe("Gemini Service", () => {
     await expect(generatePodcastScript("Mock article text")).resolves.toEqual([]);
   });
 });
+
+describe("avoiding forbidden terms", () => {
+  const script = (text: string) => ({ text: JSON.stringify([{ speaker: "HostA", text }]) });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("asks again when the first attempt uses a banned name, and keeps the clean one", async () => {
+    generateContentMock
+      .mockResolvedValueOnce(script("Roche halted the trial."))
+      .mockResolvedValueOnce(script("The manufacturer halted the trial."));
+
+    const result = await generatePodcastScript("article", {
+      tone: "measured",
+      avoid: ["Roche"],
+    });
+
+    expect(generateContentMock).toHaveBeenCalledTimes(2);
+    expect(result).toEqual([{ speaker: "HostA", text: "The manufacturer halted the trial." }]);
+  });
+
+  it("refuses rather than shipping audio that breaks the rule twice", async () => {
+    generateContentMock.mockResolvedValue(script("Roche halted the trial."));
+
+    await expect(
+      generatePodcastScript("article", { tone: "measured", avoid: ["Roche"] }),
+    ).rejects.toThrow("The script kept using: Roche");
+
+    expect(generateContentMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("spends one call and no check when nothing is banned", async () => {
+    generateContentMock.mockResolvedValue(script("Roche halted the trial."));
+
+    const result = await generatePodcastScript("article");
+
+    expect(generateContentMock).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([{ speaker: "HostA", text: "Roche halted the trial." }]);
+  });
+
+  it("leaves the show-notes prompt untouched, since that caller sends no controls", async () => {
+    generateContentMock.mockResolvedValue({ text: JSON.stringify({ summary60s: "Anything." }) });
+
+    // routes/flexread.ts calls this with one argument for show notes. Only the
+    // briefing passes controls, so this path must keep generating what it did.
+    await generateFlexReadLayers("article");
+
+    const contents: unknown = generateContentMock.mock.calls[0]?.[0]?.contents;
+    expect(generateContentMock).toHaveBeenCalledTimes(1);
+    expect(contents).toContain("Keep an even, analytical register.");
+    expect(contents).not.toContain("Do not use any of these words");
+  });
+
+  it("leaves the prompt untouched when no controls are sent", async () => {
+    generateContentMock.mockResolvedValue(script("Anything."));
+
+    await generatePodcastScript("article");
+
+    // Optional chaining because noUncheckedIndexedAccess types an array index
+    // as possibly undefined, and the assertion below is what proves it is not.
+    const contents: unknown = generateContentMock.mock.calls[0]?.[0]?.contents;
+    expect(contents).toContain("Keep an even, analytical register.");
+    expect(contents).not.toContain("Do not use any of these words");
+  });
+});

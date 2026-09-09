@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { DEFAULT_TONE, EDITORIAL_TONES, TONE_PROMPTS } from "../lib/generation-controls.js";
 import {
   BRIEFING_VOICES,
   DEFAULT_BRIEFING_VOICE_ID,
@@ -24,6 +25,18 @@ voicesRouter.get("/", (_req, res) => {
     briefing: {
       default: DEFAULT_BRIEFING_VOICE_ID,
       voices: BRIEFING_VOICES.map(({ id, label, gender }) => ({ id, label, gender })),
+    },
+    // Tones ship from here for the same reason the voices do: the picker reads
+    // its options from the server, so adding a fifth tone needs no frontend
+    // change.
+    tone: {
+      default: DEFAULT_TONE,
+      options: EDITORIAL_TONES.map((id) => ({ id, label: TONE_PROMPTS[id].label })),
+      // Tone always changes the words. It changes the performance only where
+      // the voices accept style direction, which is the podcast: the briefing
+      // is read by Cloud TTS voices that take none. The picker can say so
+      // rather than implying a briefing will sound different.
+      changesDelivery: ["podcast"],
     },
   });
 });

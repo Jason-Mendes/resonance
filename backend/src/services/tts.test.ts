@@ -1,6 +1,22 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { chunkBySpeakerPairs, type ScriptTurn } from "./tts.js";
+import { TransientError } from "../lib/errors.js";
+
+import { chunkBySpeakerPairs, synthesizeDialogue, type ScriptTurn } from "./tts.js";
+
+/**
+ * Two things are covered here. The chunker, which decides what one request to
+ * the dialogue model contains, and the retry around that request.
+ *
+ * The model is mocked. vi.mock is hoisted above these imports, so the client is
+ * replaced before tts.js pulls it in; chunkBySpeakerPairs is pure and does not
+ * reach it either way.
+ */
+const { generateContentMock } = vi.hoisted(() => ({ generateContentMock: vi.fn() }));
+
+vi.mock("../lib/vertex.js", () => ({
+  getVertexClient: () => ({ models: { generateContent: generateContentMock } }),
+}));
 
 /**
  * Every chunk becomes one multiSpeakerVoiceConfig request, and Vertex rejects
@@ -48,5 +64,47 @@ describe("chunkBySpeakerPairs", () => {
     const chunks = chunkBySpeakerPairs(script);
 
     expect(chunks.flat()).toEqual(script);
+  });
+});
+
+const audioReply = {
+  candidates: [
+    { content: { parts: [{ inlineData: { data: Buffer.from("pcm").toString("base64") } }] } },
+  ],
+};
+
+const voices = { HostA: "Algieba", HostB: "Aoede" };
+
+describe("synthesizeDialogue", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("survives a chunk that fails once, rather than losing the episode", async () => {
+    generateContentMock
+      .mockRejectedValueOnce(new Error("429 rate limit"))
+      .mockResolvedValueOnce(audioReply);
+
+    const result = await synthesizeDialogue(turns("AB"), voices, "Read it.");
+
+    expect(generateContentMock).toHaveBeenCalledTimes(2);
+    expect(result.mimeType).toBe("audio/wav");
+  });
+
+  it("gives up after three attempts, and says so in words an editor can act on", async () => {
+    generateContentMock.mockRejectedValue(new Error("503 model overloaded"));
+
+    await expect(synthesizeDialogue(turns("AB"), voices, "Read it.")).rejects.toBeInstanceOf(
+      TransientError,
+    );
+    expect(generateContentMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("never leaks the model's own message, which names quota state", async () => {
+    generateContentMock.mockRejectedValue(new Error("quota exceeded for project 12345"));
+
+    await expect(synthesizeDialogue(turns("AB"), voices, "Read it.")).rejects.toThrow(
+      "The audio service kept refusing. Please try again.",
+    );
   });
 });

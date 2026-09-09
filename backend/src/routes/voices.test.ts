@@ -30,6 +30,24 @@ describe("GET /api/voices", () => {
     }
   });
 
+  it("offers the four tones, with measured as the default", async () => {
+    const { body } = await request(app).get("/api/voices");
+
+    expect(body.tone.default).toBe("measured");
+    expect(body.tone.options.map((option: { id: string }) => option.id)).toEqual([
+      "measured",
+      "conversational",
+      "urgent",
+      "explanatory",
+    ]);
+  });
+
+  it("says tone changes delivery on the podcast only, since the briefing voices take no direction", async () => {
+    const { body } = await request(app).get("/api/voices");
+
+    expect(body.tone.changesDelivery).toEqual(["podcast"]);
+  });
+
   it("returns a default that is actually one of the options it offers", async () => {
     const { body } = await request(app).get("/api/voices");
 

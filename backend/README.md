@@ -38,12 +38,54 @@ request that needed it rather than the whole backend.
 | ------ | ------------------------------------ | ------------------------------------------------------- |
 | GET    | `/health`                            | Outside the rate limiter, for uptime probes             |
 | POST   | `/api/flexread`                      | Body `{ articleText: string }`, max 50,000 characters   |
-| POST   | `/api/podcast`                       | Same body. Returns `{ script: [{ speaker, text }] }`    |
-| POST   | `/api/tts`                           | Body `{ script, hosts? }`. Returns `202` and a job id   |
-| POST   | `/api/briefing`                      | Body `{ articleText, voice? }`. 60 seconds of audio out |
-| GET    | `/api/voices`                        | The voice catalogue. A constant read, no model call     |
+| POST   | `/api/podcast`                       | Body `{ articleText, tone?, avoid? }`. Returns a script |
+| POST   | `/api/tts`                           | Body `{ script, hosts?, tone? }`. `202` and a job id    |
+| POST   | `/api/briefing`                      | Adds `tone?`, `avoid?`. 60 seconds of audio out         |
+| GET    | `/api/voices`                        | Voice and tone catalogue. A read, no model call         |
 | GET    | `/api/{tts,briefing}/jobs/:id`       | Job status. Poll until `done` or `failed`               |
 | GET    | `/api/{tts,briefing}/jobs/:id/audio` | The audio. `409` until the job is done                  |
+
+## Editorial controls
+
+`POST /api/podcast` and `POST /api/briefing` take two optional fields, and
+`GET /api/voices` lists what they accept so nothing is hardcoded in a picker.
+
+`tone` is one of `measured` (the default), `conversational`, `urgent` or
+`explanatory`. It changes how the script is written on both formats. It also
+changes how the podcast is performed, because the dialogue model accepts a
+style instruction; pass the same value to `POST /api/tts` to hear it. The
+briefing is narrated by Cloud TTS voices, which take no style direction, so
+there a tone reaches the listener only through the words the writer chose.
+
+`avoid` is up to 20 words, names or phrases of at most 80 characters that the
+audio must not use. The prompt states the rule and the generated text is then
+checked against it. If a term survives, the model is asked once more with the
+offenders named; if it survives that too the request fails, `422` on the
+script route and a failed job on the briefing, both naming the terms that lost.
+
+## When a render fails
+
+A job that fails carries a message and, when the failure looks like a blip, a
+`retryable` flag. Errors are internal by default: an SDK message names models,
+project ids and quota state, so a caller sees `generation failed` unless the
+error deliberately extends `PublicError` in `src/lib/errors.ts`.
+
+Dialogue chunks render in parallel and the model, a preview endpoint, answers
+some of those calls with a rate limit or a 503. Each chunk is retried up to
+three times with a doubling backoff, because without that one refusal throws
+away every other chunk's finished audio. A render that exhausts the attempts
+fails as a `TransientError`, which is what sets `retryable`.
+
+`POST /api/tts` takes `avoid` too, and this is not belt and braces. The studio
+lets a producer edit turns before rendering, so the script reaching synthesis
+is not the one the writer produced and a removed name can be typed back in.
+The check there is a plain string comparison with no model call and no retry:
+a human wrote these words, so the answer is `422` and an edit, not a rewrite.
+
+Matching is whole-word and accent-preserving. `Roche` catches "Roche's" and
+does not catch "brioche", and `Zürich` matches the spelling as typed. It is a
+word filter and nothing more: banning `Roche` will not stop a script saying
+"the Basel drugmaker".
 
 ## Choosing voices
 

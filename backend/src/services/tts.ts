@@ -6,6 +6,7 @@
  */
 import textToSpeech from "@google-cloud/text-to-speech";
 
+import { TransientError } from "../lib/errors.js";
 import { getVertexClient } from "../lib/vertex.js";
 
 const client = new textToSpeech.TextToSpeechClient();
@@ -188,10 +189,22 @@ export interface NarratedAudio extends RenderedAudio {
   text: string;
 }
 
+// Chunks render in parallel, so one refusal from an overloaded model would
+// otherwise throw away every other chunk's finished audio and fail the whole
+// episode. Retrying the one chunk costs seconds; re-rendering costs a minute.
+const CHUNK_ATTEMPTS = 3;
+
+// Backoff doubles from here. Retrying a rate limit instantly just spends the
+// next attempt earning the same refusal.
+const RETRY_BASE_MS = 800;
+
+const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
 /** Synthesises one chunk, returning raw PCM so chunks can be joined. */
 async function synthesizeChunk(
   turns: ScriptTurn[],
   voiceBySpeaker: Record<string, string>,
+  delivery: string,
 ): Promise<Buffer> {
   const transcript = turns.map((turn) => `${turn.speaker}: ${turn.text}`).join("\n");
 
@@ -211,7 +224,7 @@ async function synthesizeChunk(
         role: "user",
         parts: [
           {
-            text: `Read this as a natural two-host news podcast. Conversational and engaged, at the pace of real radio.\n\n${transcript}`,
+            text: `${delivery}\n\n${transcript}`,
           },
         ],
       },
@@ -230,6 +243,36 @@ async function synthesizeChunk(
 }
 
 /**
+ * One chunk, retried on failure.
+ *
+ * The dialogue model is a preview endpoint being called several times at once,
+ * and it answers some of those with a rate limit or a 503. Those are blips: a
+ * measured render that failed outright succeeded on the identical script
+ * seconds later. Retrying here means the episode survives one of them.
+ */
+async function synthesizeChunkWithRetry(
+  turns: ScriptTurn[],
+  voiceBySpeaker: Record<string, string>,
+  delivery: string,
+): Promise<Buffer> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < CHUNK_ATTEMPTS; attempt += 1) {
+    try {
+      return await synthesizeChunk(turns, voiceBySpeaker, delivery);
+    } catch (error) {
+      lastError = error;
+      if (attempt < CHUNK_ATTEMPTS - 1) await wait(RETRY_BASE_MS * 2 ** attempt);
+    }
+  }
+
+  // Every attempt failed, so this is worth telling the caller to retry: the
+  // detail stays in the log, and the sentence is written for a person.
+  console.error("Dialogue chunk failed after every attempt:", lastError);
+  throw new TransientError("The audio service kept refusing. Please try again.");
+}
+
+/**
  * Renders a dialogue as several chunks in parallel and joins them.
  *
  * Wall time is set by the slowest chunk rather than the whole script, which on
@@ -243,6 +286,7 @@ async function synthesizeChunk(
 export async function synthesizeDialogue(
   script: ScriptTurn[],
   voiceBySpeaker: Record<string, string>,
+  delivery: string,
   reportProgress?: (fraction: number) => void,
 ): Promise<RenderedAudio> {
   const parts = chunkBySpeakerPairs(script);
@@ -252,7 +296,7 @@ export async function synthesizeDialogue(
   let done = 0;
   const chunks = await Promise.all(
     parts.map(async (part) => {
-      const audio = await synthesizeChunk(part, voiceBySpeaker);
+      const audio = await synthesizeChunkWithRetry(part, voiceBySpeaker, delivery);
       done += 1;
       reportProgress?.(done / parts.length);
       return audio;

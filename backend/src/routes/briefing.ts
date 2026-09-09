@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { parseArticleText } from "../lib/articleText.js";
+import { parseGenerationControls } from "../lib/generation-controls.js";
 import { createJob, getJob, runJob } from "../lib/jobs.js";
 import { generateFlexReadLayers } from "../services/gemini.js";
 import { synthesizeBriefing, type NarratedAudio } from "../services/tts.js";
@@ -44,9 +45,16 @@ briefingRouter.post("/", (req, res) => {
     return res.status(400).json({ error: voice.error });
   }
 
+  const controls = parseGenerationControls(req.body);
+  if (!controls.ok) {
+    return res.status(400).json({ error: controls.error });
+  }
+
   const job = createJob<NarratedAudio>();
   runJob(job, async () => {
-    const layers: unknown = await generateFlexReadLayers(parsed.articleText);
+    // A refusal thrown in here fails the job, and runJob puts its message on
+    // the status the studio is already polling. No extra path to build.
+    const layers: unknown = await generateFlexReadLayers(parsed.articleText, controls.controls);
     const summary = (layers as { summary60s?: unknown })?.summary60s;
     if (typeof summary !== "string" || summary.trim() === "") {
       throw new Error("FlexRead returned no summary60s to narrate");
@@ -71,6 +79,7 @@ briefingRouter.get("/jobs/:jobId", (req, res) => {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     ...(job.error ? { error: job.error } : {}),
+    ...(job.retryable ? { retryable: true } : {}),
     ...(job.progress !== undefined ? { progress: job.progress } : {}),
     // The narrated words ship with the status so the caller can show the
     // transcript. They exist only as a by-product of this render.

@@ -1,7 +1,14 @@
 import * as dotenv from "dotenv";
 
+import {
+  DEFAULT_TONE,
+  ForbiddenTermsError,
+  findForbiddenTerms,
+  toScriptInstructions,
+} from "../lib/generation-controls.js";
 import { getVertexClient } from "../lib/vertex.js";
 
+import type { GenerationControls } from "../lib/generation-controls.js";
 import type { SocialRequest } from "../lib/social-request.js";
 
 dotenv.config();
@@ -9,17 +16,64 @@ dotenv.config();
 // The model we want to use for heavy text reasoning
 const TEXT_MODEL = "gemini-2.5-flash";
 
+// One retry, not a loop. A second attempt that names the offending words
+// usually lands; a third costs another paid call to learn the same thing.
+const MAX_AVOIDANCE_ATTEMPTS = 2;
+
+/** No controls means the measured tone and nothing banned, which is the default prompt. */
+const NO_CONTROLS: GenerationControls = { tone: DEFAULT_TONE, avoid: [] };
+
+/** Asks the model once, with an optional note about what it got wrong last time. */
+type Attempt<T> = (correction: string) => Promise<T>;
+
+/**
+ * Runs an attempt, checks what came back against the avoid list, and asks
+ * again naming the offenders if any survived.
+ *
+ * The prompt alone is not the mechanism. A model told not to say a name says
+ * it anyway often enough that an editor could not rely on the control, so the
+ * output is read back and a second attempt is spent before giving up.
+ */
+async function avoidingForbiddenTerms<T>(
+  attempt: Attempt<T>,
+  spokenText: (result: T) => string,
+  avoid: string[],
+): Promise<T> {
+  let correction = "";
+  let used: string[] = [];
+
+  for (let tries = 0; tries < MAX_AVOIDANCE_ATTEMPTS; tries += 1) {
+    const result = await attempt(correction);
+    if (avoid.length === 0) return result;
+
+    used = findForbiddenTerms(spokenText(result), avoid);
+    if (used.length === 0) return result;
+
+    correction = `Your previous attempt used ${used.join(", ")}, which is forbidden. Rewrite without those words.`;
+  }
+
+  // Every attempt is spent and the last one still broke the rule.
+  throw new ForbiddenTermsError(used);
+}
+
 /**
  * Extracts the article content and layers it according to the FlexRead challenge.
  */
-export async function generateFlexReadLayers(articleText: string) {
-  const prompt = `
+export async function generateFlexReadLayers(
+  articleText: string,
+  controls: GenerationControls = NO_CONTROLS,
+) {
+  const attempt = async (correction: string) => {
+    const prompt = `
     You are a highly skilled editor for NZZ (Neue Zürcher Zeitung).
     Your task is to take the following raw article text and create a multi-layered reading experience.
 
     Write every field in the same language as the article itself. Naming NZZ
     otherwise leads to German output for an English article, which the English
     narration voice then reads aloud.
+
+    ${toScriptInstructions(controls)}
+    ${correction}
 
     Return the response as a valid JSON object with the following structure:
     {
@@ -33,22 +87,37 @@ export async function generateFlexReadLayers(articleText: string) {
     ${articleText}
   `;
 
-  const response = await getVertexClient().models.generateContent({
-    model: TEXT_MODEL,
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-    },
-  });
+    const response = await getVertexClient().models.generateContent({
+      model: TEXT_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
 
-  return JSON.parse(response.text || "{}");
+    return JSON.parse(response.text || "{}") as unknown;
+  };
+
+  // Only summary60s is narrated, so only summary60s is checked. A banned name
+  // in a key point would fail a render nobody would have heard it in.
+  return avoidingForbiddenTerms(attempt, narratedSummary, controls.avoid);
+}
+
+/** The one field of the reading layers that is read aloud. */
+function narratedSummary(layers: unknown): string {
+  const summary = (layers as { summary60s?: unknown })?.summary60s;
+  return typeof summary === "string" ? summary : "";
 }
 
 /**
  * Generates a two-host podcast script discussing the article.
  */
-export async function generatePodcastScript(articleText: string) {
-  const prompt = `
+export async function generatePodcastScript(
+  articleText: string,
+  controls: GenerationControls = NO_CONTROLS,
+) {
+  const attempt = async (correction: string) => {
+    const prompt = `
     Act as a professional podcast producer. Based on the provided article, write a 3-4 minute dialogue between two hosts:
     - "HostA": Analytical, expert, provides context.
     - "HostB": Curious, casual, asks the right questions.
@@ -69,7 +138,11 @@ export async function generatePodcastScript(articleText: string) {
       labels for the JSON field only, never words a host says out loud.
       "That's a great question, HostA" is wrong: the voice reads the label
       aloud. Write "That's a great question" instead.
-    
+
+    The rules above are fixed. What follows sets the register:
+    ${toScriptInstructions(controls)}
+    ${correction}
+
     Return the response as a valid JSON array of objects, where each object has:
     {
       "speaker": "HostA" or "HostB",
@@ -81,15 +154,26 @@ export async function generatePodcastScript(articleText: string) {
     ${articleText}
   `;
 
-  const response = await getVertexClient().models.generateContent({
-    model: TEXT_MODEL,
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-    },
-  });
+    const response = await getVertexClient().models.generateContent({
+      model: TEXT_MODEL,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
 
-  return JSON.parse(response.text || "[]");
+    return JSON.parse(response.text || "[]") as unknown;
+  };
+
+  // Only the spoken lines are checked. "HostA" is a JSON field name the
+  // audience never hears, so banning "host" must not fail on our own labels.
+  return avoidingForbiddenTerms(attempt, spokenLines, controls.avoid);
+}
+
+/** The words a script actually says, for the avoid check. */
+function spokenLines(script: unknown): string {
+  if (!Array.isArray(script)) return "";
+  return script.map((turn: { text?: unknown }) => String(turn?.text ?? "")).join(" ");
 }
 
 /**
