@@ -24,6 +24,9 @@ export default [
       // `next build` made `npm run lint` report tens of thousands of errors in
       // generated code. CI never saw it because it lints without building.
       "**/.next/**",
+      // Where `npm run build:check` writes, so verifying a branch does not
+      // overwrite the chunks a running dev server is serving.
+      "**/.next-verify/**",
       "**/coverage/**",
       "**/*.d.ts",
     ],
