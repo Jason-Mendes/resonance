@@ -20,6 +20,7 @@ export interface PodcastStudioSidebarProps {
   onSelectFormat: (format: PodcastFormat) => void;
   genState: PodcastGenState;
   progress: number;
+  error: string | null;
   episode: PodcastEpisode | null;
   onGenerate: () => void;
   onUpdateDialogue?: (dialogue: PodcastDialogueTurn[]) => void;
@@ -38,6 +39,7 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
   onSelectFormat,
   genState,
   progress,
+  error,
   episode,
   onGenerate,
   onUpdateDialogue,
@@ -49,6 +51,13 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
       setActiveTab("transcript");
     }
   }, [episode, genState]);
+
+  // A failure is reported on the Setup tab, next to the button that caused it.
+  React.useEffect(() => {
+    if (genState === "error") {
+      setActiveTab("config");
+    }
+  }, [genState]);
 
   return (
     <div className="space-y-4">
@@ -66,6 +75,7 @@ export const PodcastStudioSidebar: React.FC<PodcastStudioSidebarProps> = ({
         onSelectFormat={onSelectFormat}
         genState={genState}
         progress={progress}
+        error={error}
         episode={episode}
         onGenerate={onGenerate}
         onUpdateDialogue={onUpdateDialogue}

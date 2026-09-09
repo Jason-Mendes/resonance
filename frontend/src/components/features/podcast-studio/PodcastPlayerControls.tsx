@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/Button";
 export interface PodcastPlayerControlsProps {
   isPlaying: boolean;
   playbackSpeed: number;
+  /** True while the audio is still rendering and there is nothing to play. */
+  disabled: boolean;
   onTogglePlay: () => void;
   onRestart: () => void;
   onCycleSpeed: () => void;
@@ -14,6 +16,7 @@ export interface PodcastPlayerControlsProps {
 export const PodcastPlayerControls: React.FC<PodcastPlayerControlsProps> = ({
   isPlaying,
   playbackSpeed,
+  disabled,
   onTogglePlay,
   onRestart,
   onCycleSpeed,
@@ -23,7 +26,8 @@ export const PodcastPlayerControls: React.FC<PodcastPlayerControlsProps> = ({
       variant="ghost"
       size="sm"
       onClick={onRestart}
-      className="h-8 text-xs text-zinc-500 hover:text-black rounded-none"
+      disabled={disabled}
+      className="h-8 text-xs text-zinc-500 hover:text-black rounded-none disabled:opacity-40"
     >
       <RotateCcw className="h-3 w-3 mr-1" />
       Restart
@@ -32,7 +36,8 @@ export const PodcastPlayerControls: React.FC<PodcastPlayerControlsProps> = ({
     <Button
       size="sm"
       onClick={onTogglePlay}
-      className="h-8 px-5 gap-1.5 bg-black hover:bg-zinc-800 text-white rounded-none"
+      disabled={disabled}
+      className="h-8 px-5 gap-1.5 bg-black hover:bg-zinc-800 text-white rounded-none disabled:opacity-40"
     >
       {isPlaying ? (
         <>

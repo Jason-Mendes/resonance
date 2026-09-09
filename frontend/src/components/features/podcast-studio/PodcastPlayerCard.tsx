@@ -18,8 +18,22 @@ export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({
   episode,
   onSeekRequested,
 }) => {
-  const { isPlaying, currentTime, playbackSpeed, togglePlay, seekTo, cycleSpeed, formatTime } =
-    useAudioPlayback(episode.durationSeconds);
+  const {
+    audioRef,
+    isPlaying,
+    currentTime,
+    duration,
+    playbackSpeed,
+    togglePlay,
+    seekTo,
+    cycleSpeed,
+    formatTime,
+  } = useAudioPlayback(episode.audioUrl);
+
+  // The rendered file's own length once known, falling back to the script
+  // estimate while metadata is still loading.
+  const trackSeconds = duration || episode.durationSeconds;
+  const isReady = episode.audioUrl !== null;
 
   const handleSeek = (secs: number) => {
     seekTo(secs);
@@ -30,21 +44,26 @@ export const PodcastPlayerCard: React.FC<PodcastPlayerCardProps> = ({
     <div className="border border-zinc-200 bg-white p-4 space-y-3.5 rounded-none">
       <PodcastPlayerHeader episode={episode} />
 
+      {episode.audioUrl && (
+        <audio ref={audioRef} src={episode.audioUrl} preload="metadata" className="hidden" />
+      )}
+
       <PodcastWaveform
         waveform={episode.waveform}
-        progressPercent={(currentTime / episode.durationSeconds) * 100}
-        onSeekRatio={(ratio) => handleSeek(ratio * episode.durationSeconds)}
+        progressPercent={trackSeconds > 0 ? (currentTime / trackSeconds) * 100 : 0}
+        onSeekRatio={(ratio) => handleSeek(ratio * trackSeconds)}
       />
 
       <div className="space-y-1.5">
         <div className="flex justify-between text-[11px] font-mono text-zinc-400">
           <span>{formatTime(currentTime)}</span>
-          <span>{episode.formattedDuration}</span>
+          <span>{formatTime(trackSeconds)}</span>
         </div>
 
         <PodcastPlayerControls
           isPlaying={isPlaying}
           playbackSpeed={playbackSpeed}
+          disabled={!isReady}
           onTogglePlay={togglePlay}
           onRestart={() => handleSeek(0)}
           onCycleSpeed={cycleSpeed}
