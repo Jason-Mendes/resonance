@@ -4,6 +4,7 @@
 **/dist/**
 **/build/**
 **/.next/**
+**/.next-verify/**
 **/coverage/**
 **/*.d.ts
 package-lock.json
