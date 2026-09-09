@@ -77,6 +77,41 @@ interface JobStatus {
   error?: string;
 }
 
+/**
+ * Starts a briefing and waits for it. Unlike the podcast this is one job: the
+ * summary is written and narrated inside it, so the words come back with the
+ * audio rather than being fetched separately, which would run the model again
+ * and produce text the voice never said.
+ */
+const renderSummary = async (articleId: string): Promise<{ audioUrl: string; text: string }> => {
+  const start = await fetch("/api/briefing", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ articleId }),
+  });
+
+  const accepted: unknown = await start.json().catch(() => null);
+  const jobId = (accepted as { jobId?: unknown })?.jobId;
+  if (!start.ok || typeof jobId !== "string") {
+    const message = (accepted as { error?: unknown })?.error;
+    throw new Error(typeof message === "string" ? message : "Could not start the summary");
+  }
+
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    await wait(POLL_INTERVAL_MS);
+    const poll = await fetch(`/api/briefing/jobs/${jobId}`);
+    const job = (await poll.json().catch(() => null)) as (JobStatus & { text?: string }) | null;
+
+    if (job?.status === "done") {
+      return { audioUrl: `/api/briefing/jobs/${jobId}/audio`, text: job.text ?? "" };
+    }
+    if (job?.status === "failed") throw new Error(job.error ?? "The summary failed");
+  }
+
+  throw new Error("The summary timed out");
+};
+
 /** Starts a render and resolves with the audio URL once the job reports done. */
 const renderAudio = async (script: BackendScriptTurn[]): Promise<string> => {
   const start = await fetch("/api/tts", {
@@ -103,6 +138,23 @@ const renderAudio = async (script: BackendScriptTurn[]): Promise<string> => {
   }
 
   throw new Error("The audio render timed out");
+};
+
+/**
+ * A summary is one job that writes and narrates in a single step, so unlike a
+ * podcast there is no intermediate script to publish partway through. The
+ * narration becomes a single turn, which is what the transcript renders.
+ */
+const produceSummary = async (
+  article: Article,
+  pairId: string,
+  onReady: (episode: PodcastEpisode) => void,
+): Promise<{ audioUrl: string; waveform: number[] }> => {
+  const { audioUrl, text } = await renderSummary(article.id);
+  onReady(buildEpisode(article, [{ speaker: "HostA", text }], pairId, "summary"));
+
+  const waveform = await extractWaveform(audioUrl).catch(() => []);
+  return { audioUrl, waveform };
 };
 
 /** Script, then audio, then the waveform read off that audio. */
@@ -156,7 +208,7 @@ const useEpisodeState = (article: Article | null) => {
 
 export const usePodcastGeneration = (article: Article | null) => {
   const [selectedPairId, setSelectedPairId] = useState<string>(HOST_PAIR_PRESETS[0].id);
-  const [selectedFormat, setSelectedFormat] = useState<PodcastFormat>("dialogue");
+  const [selectedFormat, setSelectedFormat] = useState<PodcastFormat>("podcast");
   const { genState, setGenState, progress, setProgress, episode, setEpisode, error, setError } =
     useEpisodeState(article);
 
@@ -168,15 +220,15 @@ export const usePodcastGeneration = (article: Article | null) => {
     setProgress(GENERATION_START_PROGRESS);
 
     try {
-      const { audioUrl, waveform } = await produceEpisode(
-        article,
-        selectedPairId,
-        selectedFormat,
-        (built) => {
-          setEpisode(built);
-          setProgress(SCRIPT_DONE_PROGRESS);
-        },
-      );
+      const onReady = (built: PodcastEpisode) => {
+        setEpisode(built);
+        setProgress(SCRIPT_DONE_PROGRESS);
+      };
+
+      const { audioUrl, waveform } =
+        selectedFormat === "summary"
+          ? await produceSummary(article, selectedPairId, onReady)
+          : await produceEpisode(article, selectedPairId, selectedFormat, onReady);
 
       // Spread onto the previous state so transcript edits made while the audio
       // was rendering survive.

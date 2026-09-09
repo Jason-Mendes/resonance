@@ -12,12 +12,12 @@ interface FormatOption {
 
 const FORMAT_OPTIONS: FormatOption[] = [
   {
-    id: "dialogue",
-    label: "Dialogue",
-    sub: "Host 1 & Host 2",
+    id: "podcast",
+    label: "Podcast",
+    sub: "Two hosts, a few minutes",
     pairId: "editorial-desk",
   },
-  { id: "solo", label: "Solo", sub: "Host 1", pairId: "solo-dispatch" },
+  { id: "summary", label: "Summary", sub: "One voice, a minute", pairId: "solo-dispatch" },
 ];
 
 export interface PodcastFormatSelectorProps {
