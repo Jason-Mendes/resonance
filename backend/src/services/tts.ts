@@ -129,17 +129,26 @@ const TURNS_PER_CHUNK = 2;
  * the speakers it declares, so a trailing single-speaker chunk is folded back
  * into the one before it.
  */
-function chunkBySpeakerPairs(script: ScriptTurn[]): ScriptTurn[][] {
+export function chunkBySpeakerPairs(script: ScriptTurn[]): ScriptTurn[][] {
   const chunks: ScriptTurn[][] = [];
-  for (let i = 0; i < script.length; i += TURNS_PER_CHUNK) {
-    chunks.push(script.slice(i, i + TURNS_PER_CHUNK));
+  let current: ScriptTurn[] = [];
+
+  // A chunk closes only once it holds both speakers, so a host taking two
+  // turns in a row widens that chunk rather than producing a one-voice request.
+  for (const turn of script) {
+    current.push(turn);
+    const bothSpeakers = new Set(current.map((each) => each.speaker)).size >= 2;
+    if (current.length >= TURNS_PER_CHUNK && bothSpeakers) {
+      chunks.push(current);
+      current = [];
+    }
   }
 
-  const last = chunks[chunks.length - 1];
-  const previous = chunks[chunks.length - 2];
-  if (last && previous && new Set(last.map((turn) => turn.speaker)).size < 2) {
-    previous.push(...last);
-    chunks.pop();
+  // Whatever is left cannot stand alone: it is short, or single-voiced, or both.
+  if (current.length > 0) {
+    const previous = chunks[chunks.length - 1];
+    if (previous) previous.push(...current);
+    else chunks.push(current);
   }
   return chunks;
 }
