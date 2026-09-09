@@ -17,6 +17,8 @@ export const ArticleStudio: React.FC<ArticleStudioProps> = ({ article }) => {
   const {
     selectedPairId,
     setSelectedPairId,
+    selectedVoicePair,
+    setSelectedVoicePair,
     selectedFormat,
     setSelectedFormat,
     genState,
@@ -24,6 +26,7 @@ export const ArticleStudio: React.FC<ArticleStudioProps> = ({ article }) => {
     episode,
     error,
     generatePodcast,
+    resynthesizeAudio,
     updateDialogue,
   } = usePodcastGeneration(article);
 
@@ -35,6 +38,8 @@ export const ArticleStudio: React.FC<ArticleStudioProps> = ({ article }) => {
           <PodcastStudioSidebar
             selectedPairId={selectedPairId}
             onSelectPairId={setSelectedPairId}
+            selectedVoicePair={selectedVoicePair}
+            onSelectVoicePair={setSelectedVoicePair}
             selectedFormat={selectedFormat}
             onSelectFormat={setSelectedFormat}
             genState={genState}
@@ -42,6 +47,7 @@ export const ArticleStudio: React.FC<ArticleStudioProps> = ({ article }) => {
             error={error}
             episode={episode}
             onGenerate={generatePodcast}
+            onResynthesize={resynthesizeAudio}
             onUpdateDialogue={updateDialogue}
           />
           <SocialCarouselPanel article={article} />

@@ -12,9 +12,16 @@ export const PodcastPlayerHeader: React.FC<PodcastPlayerHeaderProps> = ({ episod
   <>
     <div className="flex items-start justify-between gap-2">
       <div className="space-y-0.5">
-        <Badge variant="editorial" className="text-[10px] rounded-none">
-          {episode.showName}
-        </Badge>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Badge variant="editorial" className="text-[10px] rounded-none">
+            {episode.showName}
+          </Badge>
+          {episode.topic && (
+            <span className="text-[10px] font-mono font-semibold uppercase px-1.5 py-0.5 bg-black text-white">
+              {episode.topic}
+            </span>
+          )}
+        </div>
         <h3 className="text-sm font-bold text-black leading-tight line-clamp-1">{episode.title}</h3>
       </div>
       <div className="flex items-center gap-1 text-zinc-500 bg-zinc-100 px-2 py-0.5 text-[11px] font-mono shrink-0 rounded-none">

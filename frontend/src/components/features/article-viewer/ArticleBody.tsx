@@ -10,8 +10,10 @@ export interface ArticleBodyProps {
 
 export const ArticleBody: React.FC<ArticleBodyProps> = ({ sections }) => (
   <div className="space-y-6 pt-5 font-serif text-zinc-800 text-base leading-relaxed">
-    {sections.map((section) => (
-      <ArticleSectionRenderer key={section.id} section={section} />
-    ))}
+    {sections
+      .filter((section) => section.type !== "key-points")
+      .map((section) => (
+        <ArticleSectionRenderer key={section.id} section={section} />
+      ))}
   </div>
 );

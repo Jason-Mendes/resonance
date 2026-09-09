@@ -6,34 +6,24 @@ import {
   toDeliveryInstruction,
 } from "../lib/generation-controls.js";
 import { createJob, getJob, runJob } from "../lib/jobs.js";
+import { isVoicePair } from "../services/tts-voices.js";
 import { synthesizeDialogue, type RenderedAudio, type ScriptTurn } from "../services/tts.js";
-import {
-  DEFAULT_PAIRING,
-  HOST_PAIRINGS,
-  isHostPairing,
-  resolvePairing,
-  type HostPairing,
-} from "../services/voices.js";
+
+import type { VoicePairType } from "../services/tts-voices.js";
 
 export const ttsRouter = Router();
 
-// A 3-4 minute two-host dialogue is roughly 40 turns. The cap stops one
-// request from spending an unbounded amount on synthesis.
 const MAX_TURNS = 120;
 const MAX_TURN_CHARS = 2_000;
 
-function parseScript(
-  body: unknown,
-): { ok: true; script: ScriptTurn[] } | { ok: false; error: string } {
-  const script = (body as { script?: unknown } | null)?.script;
-  if (!Array.isArray(script) || script.length === 0) {
-    return { ok: false, error: "script must be a non-empty array" };
-  }
-  if (script.length > MAX_TURNS) {
+function parseTurns(
+  rawList: unknown[],
+): { ok: true; turns: ScriptTurn[] } | { ok: false; error: string } {
+  if (rawList.length > MAX_TURNS) {
     return { ok: false, error: `script must have at most ${MAX_TURNS} turns` };
   }
   const turns: ScriptTurn[] = [];
-  for (const [index, raw] of script.entries()) {
+  for (const [index, raw] of rawList.entries()) {
     const turn = raw as { speaker?: unknown; text?: unknown };
     if (
       typeof turn?.speaker !== "string" ||
@@ -47,24 +37,25 @@ function parseScript(
     }
     turns.push({ speaker: turn.speaker, text: turn.text });
   }
-  return { ok: true, script: turns };
+  return { ok: true, turns };
 }
 
-/**
- * Which two voices read the script. Omitted keeps what the podcast already
- * sounded like, so an existing caller is unaffected by this field existing.
- */
-function parseHosts(
+function parseScript(
   body: unknown,
-): { ok: true; pairing: HostPairing } | { ok: false; error: string } {
-  const hosts = (body as { hosts?: unknown } | null)?.hosts;
-  if (hosts === undefined) {
-    return { ok: true, pairing: DEFAULT_PAIRING };
+): { ok: true; script: ScriptTurn[]; voicePair?: VoicePairType } | { ok: false; error: string } {
+  const container = body as { script?: unknown; voicePair?: unknown } | null;
+  const script = container?.script;
+  if (!Array.isArray(script) || script.length === 0) {
+    return { ok: false, error: "script must be a non-empty array" };
   }
-  if (!isHostPairing(hosts)) {
-    return { ok: false, error: `hosts must be one of: ${HOST_PAIRINGS.join(", ")}` };
+  const turnsResult = parseTurns(script);
+  if (!turnsResult.ok) return turnsResult;
+
+  const rawPair = container?.voicePair;
+  if (isVoicePair(rawPair)) {
+    return { ok: true, script: turnsResult.turns, voicePair: rawPair };
   }
-  return { ok: true, pairing: hosts };
+  return { ok: true, script: turnsResult.turns };
 }
 
 /**
@@ -78,11 +69,6 @@ ttsRouter.post("/", (req, res) => {
   const parsed = parseScript(req.body);
   if (!parsed.ok) {
     return res.status(400).json({ error: parsed.error });
-  }
-
-  const hosts = parseHosts(req.body);
-  if (!hosts.ok) {
-    return res.status(400).json({ error: hosts.error });
   }
 
   const controls = parseGenerationControls(req.body);
@@ -100,14 +86,12 @@ ttsRouter.post("/", (req, res) => {
     return res.status(422).json({ error: `The script uses: ${used.join(", ")}`, terms: used });
   }
 
-  const voices = resolvePairing(hosts.pairing);
   const delivery = toDeliveryInstruction(controls.controls.tone);
   const job = createJob<RenderedAudio>();
   runJob(job, (reportProgress) =>
-    synthesizeDialogue(parsed.script, voices, delivery, reportProgress),
+    synthesizeDialogue(parsed.script, delivery, parsed.voicePair, reportProgress),
   );
 
-  // 202: accepted, not finished. Location points at the status endpoint.
   res.status(202).location(`/api/tts/jobs/${job.id}`).json({ jobId: job.id, status: job.status });
 });
 

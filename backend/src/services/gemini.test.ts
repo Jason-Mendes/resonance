@@ -46,16 +46,27 @@ describe("Gemini Service", () => {
     );
   });
 
-  it("generatePodcastScript parses valid JSON response", async () => {
-    const mockScript = [
-      { speaker: "HostA", text: "Welcome to the show." },
-      { speaker: "HostB", text: "Thanks for having me." },
-    ];
+  it("generatePodcastScript parses valid JSON response with topic and script", async () => {
+    const mockOutput = {
+      topic: "Science",
+      script: [
+        { speaker: "HostA", text: "Welcome to the show." },
+        { speaker: "HostB", text: "Thanks for having me." },
+      ],
+    };
 
+    generateContentMock.mockResolvedValueOnce({ text: JSON.stringify(mockOutput) });
+
+    const result = await generatePodcastScript("Mock article text");
+    expect(result).toEqual(mockOutput);
+  });
+
+  it("generatePodcastScript supports legacy array response fallback", async () => {
+    const mockScript = [{ speaker: "HostA", text: "Welcome." }];
     generateContentMock.mockResolvedValueOnce({ text: JSON.stringify(mockScript) });
 
     const result = await generatePodcastScript("Mock article text");
-    expect(result).toEqual(mockScript);
+    expect(result).toEqual({ topic: "General", script: mockScript });
   });
 
   it("returns an empty result rather than throwing when the model returns nothing", async () => {
@@ -63,7 +74,10 @@ describe("Gemini Service", () => {
 
     await expect(generateFlexReadLayers("Mock article text")).resolves.toEqual({});
     generateContentMock.mockResolvedValueOnce({ text: undefined });
-    await expect(generatePodcastScript("Mock article text")).resolves.toEqual([]);
+    await expect(generatePodcastScript("Mock article text")).resolves.toEqual({
+      topic: "General",
+      script: [],
+    });
   });
 });
 
@@ -85,7 +99,10 @@ describe("avoiding forbidden terms", () => {
     });
 
     expect(generateContentMock).toHaveBeenCalledTimes(2);
-    expect(result).toEqual([{ speaker: "HostA", text: "The manufacturer halted the trial." }]);
+    expect(result).toEqual({
+      topic: "General",
+      script: [{ speaker: "HostA", text: "The manufacturer halted the trial." }],
+    });
   });
 
   it("refuses rather than shipping audio that breaks the rule twice", async () => {
@@ -104,7 +121,10 @@ describe("avoiding forbidden terms", () => {
     const result = await generatePodcastScript("article");
 
     expect(generateContentMock).toHaveBeenCalledTimes(1);
-    expect(result).toEqual([{ speaker: "HostA", text: "Roche halted the trial." }]);
+    expect(result).toEqual({
+      topic: "General",
+      script: [{ speaker: "HostA", text: "Roche halted the trial." }],
+    });
   });
 
   it("leaves the show-notes prompt untouched, since that caller sends no controls", async () => {

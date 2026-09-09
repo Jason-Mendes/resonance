@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { TransientError } from "../lib/errors.js";
 
-import { chunkBySpeakerPairs, synthesizeDialogue, type ScriptTurn } from "./tts.js";
+import { clearChunkCache } from "./tts-cache.js";
+import { chunkBySpeakerPairs } from "./tts-pcm.js";
+import { synthesizeDialogue, type ScriptTurn } from "./tts.js";
 
 /**
  * Two things are covered here. The chunker, which decides what one request to
@@ -73,11 +75,10 @@ const audioReply = {
   ],
 };
 
-const voices = { HostA: "Algieba", HostB: "Aoede" };
-
 describe("synthesizeDialogue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearChunkCache();
   });
 
   it("survives a chunk that fails once, rather than losing the episode", async () => {
@@ -85,7 +86,7 @@ describe("synthesizeDialogue", () => {
       .mockRejectedValueOnce(new Error("429 rate limit"))
       .mockResolvedValueOnce(audioReply);
 
-    const result = await synthesizeDialogue(turns("AB"), voices, "Read it.");
+    const result = await synthesizeDialogue(turns("AB"), "Read it.");
 
     expect(generateContentMock).toHaveBeenCalledTimes(2);
     expect(result.mimeType).toBe("audio/wav");
@@ -94,7 +95,7 @@ describe("synthesizeDialogue", () => {
   it("gives up after three attempts, and says so in words an editor can act on", async () => {
     generateContentMock.mockRejectedValue(new Error("503 model overloaded"));
 
-    await expect(synthesizeDialogue(turns("AB"), voices, "Read it.")).rejects.toBeInstanceOf(
+    await expect(synthesizeDialogue(turns("AB"), "Read it.")).rejects.toBeInstanceOf(
       TransientError,
     );
     expect(generateContentMock).toHaveBeenCalledTimes(3);
@@ -103,7 +104,7 @@ describe("synthesizeDialogue", () => {
   it("never leaks the model's own message, which names quota state", async () => {
     generateContentMock.mockRejectedValue(new Error("quota exceeded for project 12345"));
 
-    await expect(synthesizeDialogue(turns("AB"), voices, "Read it.")).rejects.toThrow(
+    await expect(synthesizeDialogue(turns("AB"), "Read it.")).rejects.toThrow(
       "The audio service kept refusing. Please try again.",
     );
   });

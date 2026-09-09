@@ -109,16 +109,16 @@ function narratedSummary(layers: unknown): string {
   return typeof summary === "string" ? summary : "";
 }
 
-/**
- * Generates a two-host podcast script discussing the article.
- */
-export async function generatePodcastScript(
-  articleText: string,
-  controls: GenerationControls = NO_CONTROLS,
-) {
-  const attempt = async (correction: string) => {
-    const prompt = `
-    Act as a professional podcast producer. Based on the provided article, write a 3-4 minute dialogue between two hosts:
+export interface PodcastGenerationResult {
+  topic: string;
+  script: { speaker: string; text: string }[];
+}
+
+/** The writing brief: the fixed rules, the register the controls ask for, and
+ * any correction earned by a previous attempt. */
+function podcastPrompt(articleText: string, controls: GenerationControls, correction: string) {
+  return `
+    Act as a professional podcast producer. Based on the provided article, categorize the primary topic and write a 3-4 minute dialogue between two hosts:
     - "HostA": Analytical, expert, provides context.
     - "HostB": Curious, casual, asks the right questions.
 
@@ -143,26 +143,40 @@ export async function generatePodcastScript(
     ${toScriptInstructions(controls)}
     ${correction}
 
-    Return the response as a valid JSON array of objects, where each object has:
+    Return the response as a valid JSON object with the following structure:
     {
-      "speaker": "HostA" or "HostB",
-      "text": "The line of dialogue to be spoken."
+      "topic": "A concise 1-2 word category classifying what this podcast dialogue is about (for example: Politics, Science, Technology, Economy, Culture, Health, Environment, or Society)",
+      "script": [
+        {
+          "speaker": "HostA" or "HostB",
+          "text": "The line of dialogue to be spoken."
+        }
+      ]
     }
-    
+
     Article Text:
     ---
     ${articleText}
   `;
+}
 
+/**
+ * Generates a two-host podcast script discussing the article, labeled with an editorial topic.
+ */
+export async function generatePodcastScript(
+  articleText: string,
+  controls: GenerationControls = NO_CONTROLS,
+): Promise<PodcastGenerationResult> {
+  const attempt = async (correction: string) => {
     const response = await getVertexClient().models.generateContent({
       model: TEXT_MODEL,
-      contents: prompt,
+      contents: podcastPrompt(articleText, controls, correction),
       config: {
         responseMimeType: "application/json",
       },
     });
 
-    return JSON.parse(response.text || "[]") as unknown;
+    return parsePodcastResult(response.text);
   };
 
   // Only the spoken lines are checked. "HostA" is a JSON field name the
@@ -170,8 +184,24 @@ export async function generatePodcastScript(
   return avoidingForbiddenTerms(attempt, spokenLines, controls.avoid);
 }
 
+/**
+ * Reads the model's reply into a topic and a script.
+ *
+ * A bare array still parses: that is what the prompt used to ask for, and a
+ * reply in the old shape should not fail a render.
+ */
+function parsePodcastResult(text: string | undefined): PodcastGenerationResult {
+  const parsed = JSON.parse(text || "{}");
+  if (Array.isArray(parsed)) {
+    return { topic: "General", script: parsed };
+  }
+  const rawTopic = typeof parsed.topic === "string" ? parsed.topic.trim() : "";
+  const topic = rawTopic ? rawTopic.replace(/\b\w/g, (c: string) => c.toUpperCase()) : "General";
+  return { topic, script: Array.isArray(parsed.script) ? parsed.script : [] };
+}
+
 /** The words a script actually says, for the avoid check. */
-function spokenLines(script: unknown): string {
+function spokenLines({ script }: PodcastGenerationResult): string {
   if (!Array.isArray(script)) return "";
   return script.map((turn: { text?: unknown }) => String(turn?.text ?? "")).join(" ");
 }
